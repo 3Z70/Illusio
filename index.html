@@ -5007,7 +5007,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         <div class="form-group" style="margin-bottom:0;">
             <label>添加题目</label>
             <textarea id="taQuestionBankInput" rows="3" placeholder="问题|选项1|选项2|选项3..." style="width:100%; padding:10px; border:3px solid var(--border-color); border-radius:6px; font-weight:700; outline:none; background:var(--bg-color); color:var(--text-color); resize:none;"></textarea>
-            <button class="action-btn" style="flex:1; margin:8px 0 0 0; border-radius:4px; font-size:1em;" onclick="addTaQuestion()">添加题目</button>
+            <button id="taQuestionBankAddBtn" class="action-btn" style="flex:1; margin:8px 0 0 0; border-radius:4px; font-size:1em;" onclick="addTaQuestion()">添加题目</button>
         </div>
         
         <div id="taQuestionBankList" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:4px;">
@@ -5015,7 +5015,6 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         </div>
         
         <div style="display:flex; gap:12px;">
-            <button class="outline-btn" style="flex:1; margin:0;" onclick="resetTaQuestionBank()">恢复原题目</button>
             <button class="outline-btn" style="flex:1; margin:0;" onclick="document.getElementById('taQuestionBankModal').style.display='none'">关闭</button>
         </div>
     </div>
@@ -11168,6 +11167,7 @@ let qBankData = [];
 let taQuestionActive = false;
 let taCurrentQuestion = null;   // { question, opts, qid }
 let taAnsweredQids = new Set();
+let editingTaQuestionIndex = -1;   // 正在编辑的题目下标，-1 表示新增模式
 
 async function loadTaQuestionBank() {
     const d = await getFromDB('settings', 'qBankData');
@@ -11186,6 +11186,9 @@ async function saveTaQuestionBank() {
 async function openTaQuestionBankModal() {
     document.getElementById('qaModal').style.display = 'none';
     await loadTaQuestionBank();
+    editingTaQuestionIndex = -1;
+    const addBtn = document.getElementById('taQuestionBankAddBtn');
+    if (addBtn) addBtn.innerText = "添加题目";
     document.getElementById('taQuestionBankModal').style.display = 'flex';
     document.getElementById('taQuestionBankInput').value = '';
     renderTaQuestionBank();
@@ -11201,19 +11204,32 @@ function renderTaQuestionBank() {
     }
     qBankData.forEach((item, i) => {
         const el = document.createElement('div');
-        el.style.cssText = 'border:2px solid var(--border-color); border-radius:8px; padding:10px 12px; background:var(--panel-bg); display:flex; justify-content:space-between; align-items:center; gap:8px;';
+        el.style.cssText = 'border:2px solid var(--border-color); border-radius:8px; padding:10px 12px; background:var(--panel-bg); display:flex; justify-content:space-between; align-items:center; gap:8px; cursor:pointer;';
         el.innerHTML = `
-            <div style="flex:1; font-weight:800; font-size:0.9em; line-height:1.4;">
+            <div onclick="editTaQuestion(${i})" style="flex:1; font-weight:800; font-size:0.9em; line-height:1.4;">
                 <div>${i + 1}. ${escapeHtml(item.q)}</div>
                 <div style="font-size:0.78em; opacity:0.7; font-weight:700; margin-top:4px;">${item.opts.map(o => '『' + escapeHtml(o) + '』').join(' ')}</div>
             </div>
+            <button class="icon-btn" style="border:none; padding:4px; box-shadow:none; background:transparent; flex-shrink:0; font-size:1.1em;" title="编辑" onclick="editTaQuestion(${i})">✎</button>
             <button class="icon-btn" style="border:none; color:#ff4444; padding:4px; box-shadow:none; background:transparent; flex-shrink:0; font-size:1.1em;" onclick="removeTaQuestion(${i}, event)">✖</button>
         `;
         container.appendChild(el);
     });
 }
 
-// 添加题目（问题|选项1|选项2...）
+// 编辑某道题（回填到输入框）
+function editTaQuestion(index) {
+    editingTaQuestionIndex = index;
+    const item = qBankData[index];
+    if (!item) return;
+    document.getElementById('taQuestionBankInput').value = item.q + '|' + item.opts.join('|');
+    const addBtn = document.getElementById('taQuestionBankAddBtn');
+    if (addBtn) addBtn.innerText = "保存修改";
+    document.getElementById('taQuestionBankInput').focus();
+    document.getElementById('taQuestionBankInput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 添加或保存题目（问题|选项1|选项2...）
 async function addTaQuestion() {
     const raw = document.getElementById('taQuestionBankInput').value.trim();
     if (!raw) { showCustomConfirm('请先输入题目和选项哦~', () => {}); return; }
@@ -11224,7 +11240,17 @@ async function addTaQuestion() {
     }
     const question = parts[0];
     const opts = parts.slice(1);
-    qBankData.push({ q: question, opts: opts });
+
+    if (editingTaQuestionIndex >= 0) {
+        // 编辑模式：覆盖原题
+        qBankData[editingTaQuestionIndex] = { q: question, opts: opts };
+        editingTaQuestionIndex = -1;
+        const addBtn = document.getElementById('taQuestionBankAddBtn');
+        if (addBtn) addBtn.innerText = "添加题目";
+    } else {
+        qBankData.push({ q: question, opts: opts });
+    }
+
     await saveTaQuestionBank();
     document.getElementById('taQuestionBankInput').value = '';
     renderTaQuestionBank();
@@ -11234,15 +11260,6 @@ async function removeTaQuestion(index, e) {
     e.stopPropagation();
     showCustomConfirm('确定要删掉这道题吗？', async () => {
         qBankData.splice(index, 1);
-        await saveTaQuestionBank();
-        renderTaQuestionBank();
-    });
-}
-
-// 恢复成原始题库（你提供的那 30 道）
-async function resetTaQuestionBank() {
-    showCustomConfirm('确定要把题库恢复成最初的 30 道原题吗？', async () => {
-        qBankData = TA_DEFAULT_Q_BANK.map(x => ({ q: x.q, opts: x.opts.slice() }));
         await saveTaQuestionBank();
         renderTaQuestionBank();
     });
