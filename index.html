@@ -7618,6 +7618,7 @@ function updateFloatingBallVisibility() {
         let startX, startY, initialLeft, initialTop;
         let dragStartTime;
         let movedDistance = 0;
+        let lastTouchTime = 0; // 记录最近一次触摸的时间，用于忽略浏览器合成的模拟鼠标事件
 
         // 绑定触摸事件 (手机端)
         floatingBall.addEventListener('touchstart', dragStart, { passive: false });
@@ -7630,6 +7631,14 @@ function updateFloatingBallVisibility() {
         document.addEventListener('mouseup', dragEnd);
 
         function dragStart(e) {
+            // 修复：手机触摸后浏览器会合成模拟鼠标事件(mousedown/mouseup)，
+            // 导致一次点击触发两次开关。这里记录触摸时间，忽略紧随其后的模拟鼠标事件。
+            if (e.type === 'touchstart') {
+                lastTouchTime = Date.now();
+            } else if (Date.now() - lastTouchTime < 400) {
+                // 鼠标事件但刚发生过触摸：跳过浏览器合成的模拟鼠标事件
+                return;
+            }
             if (e.target.closest('#floatingBall')) {
                 initialLeft = floatingBall.offsetLeft;
                 initialTop = floatingBall.offsetTop;
