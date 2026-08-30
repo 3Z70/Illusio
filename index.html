@@ -5015,6 +5015,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         </div>
         
         <div style="display:flex; gap:12px;">
+            <button class="outline-btn" style="flex:1; margin:0;" onclick="resetTaQuestionBank()">恢复原题目</button>
             <button class="outline-btn" style="flex:1; margin:0;" onclick="document.getElementById('taQuestionBankModal').style.display='none'">关闭</button>
         </div>
     </div>
@@ -11102,12 +11103,9 @@ async function sendQaQuestion() {
         await delay(1200);
 
         let cardsHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
-        picked.forEach((txt, i) => {
-            const faces = ['🌸','🌟','💌','🍀','🎠','🌙','☕','🕊️'];
-            const face = faces[Math.floor(Math.random() * faces.length)];
+        picked.forEach((txt) => {
             cardsHtml += `
-                <div style="display:flex; align-items:center; gap:10px; background:var(--bg-color); color:var(--text-color); border:2px solid var(--border-color); border-radius:12px; padding:10px 14px; box-shadow:3px 3px 0 var(--border-color);">
-                    <div style="font-size:1.4em;">${face}</div>
+                <div style="background:var(--bg-color); color:var(--text-color); border:2px solid var(--border-color); border-radius:12px; padding:10px 14px; box-shadow:3px 3px 0 var(--border-color);">
                     <div style="font-weight:800; font-size:0.95em;">${escapeHtml(txt)}</div>
                 </div>`;
         });
@@ -11241,6 +11239,15 @@ async function removeTaQuestion(index, e) {
     });
 }
 
+// 恢复成原始题库（你提供的那 30 道）
+async function resetTaQuestionBank() {
+    showCustomConfirm('确定要把题库恢复成最初的 30 道原题吗？', async () => {
+        qBankData = TA_DEFAULT_Q_BANK.map(x => ({ q: x.q, opts: x.opts.slice() }));
+        await saveTaQuestionBank();
+        renderTaQuestionBank();
+    });
+}
+
 // TA 随机翻字卡反馈（通用）
 async function taFlipCards(activeChar) {
     const delay = ms => new Promise(res => setTimeout(res, ms));
@@ -11253,13 +11260,10 @@ async function taFlipCards(activeChar) {
         const cardCount = Math.random() < 0.35 ? 1 : (Math.random() < 0.5 ? 2 : 3);
         const shuffled = cardPool.slice().sort(() => 0.5 - Math.random());
         const picked = shuffled.slice(0, cardCount);
-        const faces = ['🌸', '🌟', '💌', '🍀', '🎠', '🌙', '☕', '🕊️'];
         let cardsHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
         picked.forEach(txt => {
-            const face = faces[Math.floor(Math.random() * faces.length)];
             cardsHtml += `
-                <div style="display:flex; align-items:center; gap:10px; background:var(--bg-color); color:var(--text-color); border:2px solid var(--border-color); border-radius:12px; padding:10px 14px; box-shadow:3px 3px 0 var(--border-color);">
-                    <div style="font-size:1.4em;">${face}</div>
+                <div style="background:var(--bg-color); color:var(--text-color); border:2px solid var(--border-color); border-radius:12px; padding:10px 14px; box-shadow:3px 3px 0 var(--border-color);">
                     <div style="font-weight:800; font-size:0.95em;">${escapeHtml(txt)}</div>
                 </div>`;
         });
