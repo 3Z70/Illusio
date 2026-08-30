@@ -11090,7 +11090,14 @@ async function sendQaQuestion() {
     // 4. 从全局字卡库随机抽取 1~3 张作为"翻卡反馈"
     await delay(1000);
     const allCards = await getAllFromDB('wordCards');
-    const cardPool = (allCards && allCards.length) ? allCards.map(c => c.text) : [];
+    // 只抽当前角色分组内的字卡，避免混入其他角色的字卡
+    let validWords = allCards || [];
+    let charReplyGroups = (activeChar && activeChar.activeReplyGroups) || currentSettings.activeReplyGroups;
+    if (charReplyGroups && charReplyGroups.length > 0) {
+        const filtered = allCards.filter(w => charReplyGroups.includes(w.category || '日常'));
+        if (filtered.length > 0) validWords = filtered;
+    }
+    const cardPool = validWords.map(c => c.text);
     if (cardPool.length > 0) {
         const cardCount = Math.random() < 0.35 ? 1 : (Math.random() < 0.5 ? 2 : 3); // 随机1~3张
         const shuffled = cardPool.slice().sort(() => 0.5 - Math.random());
@@ -11271,7 +11278,14 @@ async function taFlipCards(activeChar) {
     const typingIndicator = document.getElementById('typingIndicator');
     const chatCont = document.getElementById('chatContainer');
     const allCards = await getAllFromDB('wordCards');
-    const cardPool = (allCards && allCards.length) ? allCards.map(c => c.text) : [];
+    // 只抽当前角色分组内的字卡，避免混入其他角色的字卡
+    let validWords = allCards || [];
+    let charReplyGroups = (activeChar && activeChar.activeReplyGroups) || currentSettings.activeReplyGroups;
+    if (charReplyGroups && charReplyGroups.length > 0) {
+        const filtered = allCards.filter(w => charReplyGroups.includes(w.category || '日常'));
+        if (filtered.length > 0) validWords = filtered;
+    }
+    const cardPool = validWords.map(c => c.text);
     await delay(1000);
     if (cardPool.length > 0) {
         const cardCount = Math.random() < 0.35 ? 1 : (Math.random() < 0.5 ? 2 : 3);
