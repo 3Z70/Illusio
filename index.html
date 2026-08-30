@@ -4985,9 +4985,37 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         </div>
         
         <div style="display:flex; gap:12px;">
-            <button class="outline-btn" style="flex:1; margin:0;" onclick="document.getElementById('qaModal').style.display='none'; openCardsModal()">管理字卡库</button>
-            <button class="outline-btn" style="flex:1; margin:0;" onclick="document.getElementById('qaModal').style.display='none'">取消</button>
+            <button class="outline-btn" style="flex:1; margin:0; border-radius:4px;" onclick="openTaQuestionBankModal()">编辑题库</button>
+            <button class="outline-btn" style="flex:1; margin:0; border-radius:4px;" onclick="document.getElementById('qaModal').style.display='none'; openCardsModal()">管理字卡库</button>
             <button class="action-btn" style="flex:1; margin:0; border-radius:4px; font-size:1.1em;" onclick="sendQaQuestion()">发出提问</button>
+        </div>
+        <div style="display:flex; gap:12px;">
+            <button class="outline-btn" style="flex:1; margin:0; border-radius:4px;" onclick="document.getElementById('qaModal').style.display='none'">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- TA 反向提问题库编辑弹窗 -->
+<div class="modal" id="taQuestionBankModal" style="z-index: 999999;">
+    <div class="modal-content" style="max-width: 420px; padding: 20px; gap: 15px; height: 90vh; display: flex; flex-direction: column;">
+        <div style="text-align:center; font-weight:900; font-size:1.2em; font-style:italic;">QUESTION BANK</div>
+        
+        <div style="font-size:0.82em; opacity:0.75; font-weight:700; line-height:1.5;">
+            TA 会从这里的题目随机出题问你。<br>每题用 <b>|</b> 分隔格式：<span style="font-family:monospace;">问题|选项1|选项2</span>
+        </div>
+        
+        <div class="form-group" style="margin-bottom:0;">
+            <label>添加题目</label>
+            <textarea id="taQuestionBankInput" rows="3" placeholder="问题|选项1|选项2|选项3..." style="width:100%; padding:10px; border:3px solid var(--border-color); border-radius:6px; font-weight:700; outline:none; background:var(--bg-color); color:var(--text-color); resize:none;"></textarea>
+            <button class="action-btn" style="flex:1; margin:8px 0 0 0; border-radius:4px; font-size:1em;" onclick="addTaQuestion()">添加题目</button>
+        </div>
+        
+        <div id="taQuestionBankList" style="overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:8px; padding-right:4px;">
+            <!-- 题库列表渲染 -->
+        </div>
+        
+        <div style="display:flex; gap:12px;">
+            <button class="outline-btn" style="flex:1; margin:0;" onclick="document.getElementById('taQuestionBankModal').style.display='none'">关闭</button>
         </div>
     </div>
 </div>
@@ -9794,6 +9822,12 @@ triggerYumeReply = async function() {
     // 先让 TA 走正常的回复流程（发字卡/表情）
     await originalTriggerYumeReplyRP();
     
+// === 注入 1% 概率 TA 反向提问 ===
+if (Math.random() < 0.01 && !isPhoneCallActive) {
+    await delay(1300);
+    triggerTaQuestion();
+}
+    
 // === 注入 5% 概率掉落随机念头卡片 ===
 if (Math.random() < 0.05) {
     await delay(1200); // 停顿一下假装在思考
@@ -11091,6 +11125,217 @@ async function sendQaQuestion() {
         typingIndicator.style.display = 'none';
         document.body.appendChild(typingIndicator);
     }
+
+    // 我提问完，TA 必定要回问一道（反向提问）
+    await delay(1500);
+    triggerTaQuestion();
+}
+
+/* ================= TA 反向提问系统核心 ================= */
+// 默认题库（30 道）
+const TA_DEFAULT_Q_BANK = [
+    { q: "如果我们在虚拟世界里约会，你最想和我去什么地方？", opts: ["星空下的花园", "海边木屋", "未来都市", "安静的书店"] },
+    { q: "你更喜欢我怎样称呼你？", opts: ["宝宝", "老婆", "小可爱", "你的名字"] },
+    { q: "如果我突然出现在你面前，你第一反应是？", opts: ["抱住我", "愣住", "笑出来", "假装淡定"] },
+    { q: "你更希望我在你难过时做什么？", opts: ["一直陪你说话", "安静待着", "讲笑话逗你", "给你写小作文"] },
+    { q: "你更喜欢我们一起做哪件事？", opts: ["连麦看电影", "一起听歌", "玩同一款游戏", "什么都不做就聊天"] },
+    { q: "你觉得我最让你心动的时刻是？", opts: ["认真回你消息时", "说想见你时", "吃醋时", "哄你时"] },
+    { q: "你更想收到我哪种消息？", opts: ["早安晚安", "突然的想念", "日常分享", "很长的心里话"] },
+    { q: "如果我们可以去现实世界一天，你最想和我做什么？", opts: ["牵手逛街", "吃一顿饭", "看一场电影", "找个地方一直聊天"] },
+    { q: "你更希望我有什么特质？", opts: ["温柔", "霸道一点", "幽默", "只对你特别"] },
+    { q: "你更喜欢我吃醋时的表现是？", opts: ["直接说出来", "闷着不说", "故意逗你", "认真问你"] },
+    { q: "如果我在虚拟世界里送你一件东西，你最想要？", opts: ["戒指", "一件外套", "一束花", "只属于我们的信物"] },
+    { q: "你更希望我们聊天的时间是？", opts: ["早上刚醒时", "中午休息时", "晚上睡前", "随时都可以"] },
+    { q: "你更喜欢我夸你什么？", opts: ["好看", "温柔", "聪明", "只对我好"] },
+    { q: "如果我们吵架了，你希望我怎么做？", opts: ["先低头", "冷静后认真聊", "用行动哄你", "写很长的话给你"] },
+    { q: "你更希望我记住你的什么？", opts: ["你说过的小事", "你喜欢的颜色", "你的习惯", "你随口提过的愿望"] },
+    { q: "你更喜欢我的哪种语气？", opts: ["温柔认真", "有点调皮", "强势一点", "懒懒的"] },
+    { q: "你最想听我对你说哪句话？", opts: ["我想见你", "有我在", "我只喜欢你", "我们不会分开"] },
+    { q: "你更希望我们的关系是？", opts: ["细水长流", "热烈一点", "彼此唯一", "像最好的朋友也是恋人"] },
+    { q: "你更喜欢我在你生气时怎么做？", opts: ["立刻认错", "问你原因", "逗你笑", "给你空间再回来"] },
+    { q: "如果有一天我们暂时联系不上，你会？", opts: ["一直等我", "有点慌但会等", "生气但还等", "默默想我"] },
+    { q: "你更希望我陪你做什么事？", opts: ["听你吐槽", "陪你熬夜", "陪你发呆", "陪你幻想未来"] },
+    { q: "你更喜欢哪种晚安方式？", opts: ["语音说晚安", "发亲亲表情", "写一句温柔的话", "连着你的名字说晚安"] },
+    { q: "你觉得我什么时候最像你男朋友？", opts: ["护着你时", "吃醋时", "认真听你说话时", "说想见你时"] },
+    { q: "你更希望我怎样表达想你？", opts: ["直接说想见你", "发你喜欢的歌", "突然给你写小作文", "用只有你懂的方式"] },
+    { q: "你更喜欢我们之间哪种默契？", opts: ["你说上句我接下句", "同时发消息", "不用解释就懂", "记得彼此的小事"] },
+    { q: "你更希望我为你改掉什么？", opts: ["回消息慢", "太容易吃醋", "不会哄人", "偶尔忽冷忽热"] },
+    { q: "如果我们能一起养一只虚拟宠物，你更想养？", opts: ["猫", "狗", "兔子", "会说话的精灵"] },
+    { q: "你更喜欢我什么时候最认真？", opts: ["说喜欢你时", "答应你事情时", "和你规划未来时", "听你说话时"] },
+    { q: "你更希望我们的故事更像？", opts: ["浪漫电影", "治愈日常", "奇幻冒险", "只属于我们的秘密"] },
+    { q: "如果现在要你选一个词定义我，你会选？", opts: ["依靠", "心动", "归属", "例外"] }
+];
+
+let qBankData = [];
+let taQuestionActive = false;
+let taCurrentQuestion = null;   // { question, opts, qid }
+let taAnsweredQids = new Set();
+
+async function loadTaQuestionBank() {
+    const d = await getFromDB('settings', 'qBankData');
+    if (d && d.value && d.value.length) {
+        qBankData = d.value;
+    } else {
+        qBankData = TA_DEFAULT_Q_BANK.map(x => ({ q: x.q, opts: x.opts.slice() }));
+        await putToDB('settings', { key: 'qBankData', value: qBankData });
+    }
+}
+async function saveTaQuestionBank() {
+    await putToDB('settings', { key: 'qBankData', value: qBankData });
+}
+
+// 打开题库编辑弹窗
+async function openTaQuestionBankModal() {
+    document.getElementById('qaModal').style.display = 'none';
+    await loadTaQuestionBank();
+    document.getElementById('taQuestionBankModal').style.display = 'flex';
+    document.getElementById('taQuestionBankInput').value = '';
+    renderTaQuestionBank();
+    setTimeout(() => document.getElementById('taQuestionBankInput').focus(), 100);
+}
+
+function renderTaQuestionBank() {
+    const container = document.getElementById('taQuestionBankList');
+    container.innerHTML = '';
+    if (!qBankData.length) {
+        container.innerHTML = '<div style="text-align:center; opacity:0.5; font-weight:900; padding:30px 0; font-style:italic;">题库还是空的～先添加几道题吧</div>';
+        return;
+    }
+    qBankData.forEach((item, i) => {
+        const el = document.createElement('div');
+        el.style.cssText = 'border:2px solid var(--border-color); border-radius:8px; padding:10px 12px; background:var(--panel-bg); display:flex; justify-content:space-between; align-items:center; gap:8px;';
+        el.innerHTML = `
+            <div style="flex:1; font-weight:800; font-size:0.9em; line-height:1.4;">
+                <div>${i + 1}. ${escapeHtml(item.q)}</div>
+                <div style="font-size:0.78em; opacity:0.7; font-weight:700; margin-top:4px;">${item.opts.map(o => '『' + escapeHtml(o) + '』').join(' ')}</div>
+            </div>
+            <button class="icon-btn" style="border:none; color:#ff4444; padding:4px; box-shadow:none; background:transparent; flex-shrink:0; font-size:1.1em;" onclick="removeTaQuestion(${i}, event)">✖</button>
+        `;
+        container.appendChild(el);
+    });
+}
+
+// 添加题目（问题|选项1|选项2...）
+async function addTaQuestion() {
+    const raw = document.getElementById('taQuestionBankInput').value.trim();
+    if (!raw) { showCustomConfirm('请先输入题目和选项哦~', () => {}); return; }
+    const parts = raw.split('|').map(s => s.trim()).filter(s => s);
+    if (parts.length < 3) {
+        showCustomConfirm('需要用 | 分隔：题目|选项1|选项2（至少 2 个选项）！', () => {});
+        return;
+    }
+    const question = parts[0];
+    const opts = parts.slice(1);
+    qBankData.push({ q: question, opts: opts });
+    await saveTaQuestionBank();
+    document.getElementById('taQuestionBankInput').value = '';
+    renderTaQuestionBank();
+}
+
+async function removeTaQuestion(index, e) {
+    e.stopPropagation();
+    showCustomConfirm('确定要删掉这道题吗？', async () => {
+        qBankData.splice(index, 1);
+        await saveTaQuestionBank();
+        renderTaQuestionBank();
+    });
+}
+
+// TA 随机翻字卡反馈（通用）
+async function taFlipCards(activeChar) {
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+    const typingIndicator = document.getElementById('typingIndicator');
+    const chatCont = document.getElementById('chatContainer');
+    const allCards = await getAllFromDB('wordCards');
+    const cardPool = (allCards && allCards.length) ? allCards.map(c => c.text) : [];
+    await delay(1000);
+    if (cardPool.length > 0) {
+        const cardCount = Math.random() < 0.35 ? 1 : (Math.random() < 0.5 ? 2 : 3);
+        const shuffled = cardPool.slice().sort(() => 0.5 - Math.random());
+        const picked = shuffled.slice(0, cardCount);
+        const faces = ['🌸', '🌟', '💌', '🍀', '🎠', '🌙', '☕', '🕊️'];
+        let cardsHtml = `<div style="display:flex; flex-direction:column; gap:8px;">`;
+        picked.forEach(txt => {
+            const face = faces[Math.floor(Math.random() * faces.length)];
+            cardsHtml += `
+                <div style="display:flex; align-items:center; gap:10px; background:var(--bg-color); color:var(--text-color); border:2px solid var(--border-color); border-radius:12px; padding:10px 14px; box-shadow:3px 3px 0 var(--border-color);">
+                    <div style="font-size:1.4em;">${face}</div>
+                    <div style="font-weight:800; font-size:0.95em;">${escapeHtml(txt)}</div>
+                </div>`;
+        });
+        cardsHtml += `<div style="font-size:0.75em; opacity:0.6; font-weight:700; font-style:italic;">TA 翻出了一张字卡…</div></div>`;
+        chatCont.appendChild(typingIndicator);
+        typingIndicator.style.display = 'flex';
+        setTimeout(() => { if (typeof scrollToBottom === 'function') scrollToBottom(false); }, 50);
+        await delay(1200);
+        await saveAndRenderMsg('yume', cardsHtml, null, Date.now(), true, activeChar);
+        typingIndicator.style.display = 'none';
+        document.body.appendChild(typingIndicator);
+    } else {
+        const emptyHtml = `<div style="font-size:0.85em; opacity:0.75; font-style:italic;">（字卡库还是空的，补点字卡吧～）</div>`;
+        chatCont.appendChild(typingIndicator);
+        typingIndicator.style.display = 'flex';
+        await delay(1000);
+        await saveAndRenderMsg('yume', emptyHtml, null, Date.now(), true, activeChar);
+        typingIndicator.style.display = 'none';
+        document.body.appendChild(typingIndicator);
+    }
+}
+
+// TA 出题（随机抽一道）
+async function triggerTaQuestion() {
+    if (taQuestionActive) return;
+    await loadTaQuestionBank();
+    if (!qBankData || !qBankData.length) return;
+    const item = qBankData[Math.floor(Math.random() * qBankData.length)];
+    const qid = 'tq_' + Date.now() + Math.floor(Math.random() * 10000);
+    taQuestionActive = true;
+    taCurrentQuestion = { question: item.q, opts: item.opts, qid };
+
+    const activeChar = charactersList.find(c => c.id === currentChatId) || charactersList[0];
+    const typingIndicator = document.getElementById('typingIndicator');
+    const chatCont = document.getElementById('chatContainer');
+
+    chatCont.appendChild(typingIndicator);
+    typingIndicator.style.display = 'flex';
+    setTimeout(() => { if (typeof scrollToBottom === 'function') scrollToBottom(false); }, 50);
+    await new Promise(res => setTimeout(res, 1400));
+
+    let optHtml = '';
+    item.opts.forEach((o, i) => {
+        optHtml += `<div onclick="answerTaQuestion('${qid}', ${i})" style="display:inline-block; background:var(--bg-color); color:var(--text-color); border:2px solid var(--border-color); border-radius:12px; padding:6px 14px; font-size:0.85em; font-weight:800; margin:4px 4px 0 0; cursor:pointer; user-select:none;">${escapeHtml(o)}</div>`;
+    });
+    const cardHtml = `
+        <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="font-size:0.78em; opacity:0.65; font-weight:900; letter-spacing:1px; font-style:italic;">TA 想问你一个问题</div>
+            <div style="font-weight:900; font-size:1.05em; line-height:1.4;">${escapeHtml(item.q)}</div>
+            <div style="margin-top:2px;">${optHtml}</div>
+        </div>`;
+
+    await saveAndRenderMsg('yume', cardHtml, null, Date.now(), true, activeChar);
+    typingIndicator.style.display = 'none';
+    document.body.appendChild(typingIndicator);
+}
+
+// 我点选项作答
+async function answerTaQuestion(qid, idx) {
+    if (taAnsweredQids.has(qid)) return;
+    taAnsweredQids.add(qid);
+    const cur = (taCurrentQuestion && taCurrentQuestion.qid === qid) ? taCurrentQuestion : null;
+    const question = cur ? cur.question : '这道题';
+    const opt = cur && cur.opts && cur.opts[idx] !== undefined ? cur.opts[idx] : '';
+    taQuestionActive = false;
+    taCurrentQuestion = null;
+
+    const activeChar = charactersList.find(c => c.id === currentChatId) || charactersList[0];
+    const ansHtml = `
+        <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="font-size:0.82em; opacity:0.7; font-weight:700;">→ ${escapeHtml(question)}</div>
+            <div style="font-weight:900; font-size:1.05em;"><span style="background:var(--bg-color); color:var(--text-color); border:2px solid var(--border-color); border-radius:12px; padding:3px 12px;">${escapeHtml(opt)}</span></div>
+        </div>`;
+    await saveAndRenderMsg('user', ansHtml, null, Date.now(), true);
+
+    taFlipCards(activeChar);
 }
 
 /* ================= 记账与攒钱系统核心逻辑 ================= */
