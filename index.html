@@ -11088,7 +11088,7 @@ async function sendQaQuestion() {
     document.body.appendChild(typingIndicator);
 
     // 4. 从全局字卡库随机抽取 1~3 张作为"翻卡反馈"
-    await delay(3000);
+    await delay(1000 + Math.random() * 2000);
     const allCards = await getAllFromDB('wordCards');
     // 只抽当前角色分组内的字卡，避免混入其他角色的字卡
     let validWords = allCards || [];
