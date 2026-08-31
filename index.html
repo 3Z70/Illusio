@@ -11509,7 +11509,7 @@ function gomokuOnClick(e) {
     placeGomoku(row, col, 1);
     if (gomokuOver) return;
     if (isFirst) {
-        saveAndRenderMsg('yume', '好呀，陪你下～轮到你了。', null, Date.now(), true, getActiveChar());
+        gomokuReact(getActiveChar(), 0.7);
     }
     gomokuThinking = true;
     updateGomokuStatus();
@@ -11525,10 +11525,10 @@ function placeGomoku(r, c, player) {
         updateGomokuStatus();
         if (player === 1) {
             saveAndRenderMsg('system', '你赢了这局五子棋！', null, Date.now(), true);
-            saveAndRenderMsg('yume', '哎呀～五子棋输给你了，再来一局？', null, Date.now(), true, getActiveChar());
+            gomokuReact(getActiveChar(), 1);
         } else {
             saveAndRenderMsg('system', `${getTaName()} 赢了这局五子棋！`, null, Date.now(), true);
-            saveAndRenderMsg('yume', `嘿嘿，这局我赢啦～要不要再来？`, null, Date.now(), true, getActiveChar());
+            gomokuReact(getActiveChar(), 1);
         }
         return;
     }
@@ -11536,6 +11536,7 @@ function placeGomoku(r, c, player) {
         gomokuOver = true;
         updateGomokuStatus();
         saveAndRenderMsg('system', '这局五子棋下和了！', null, Date.now(), true);
+        gomokuReact(getActiveChar(), 1);
         return;
     }
     gomokuTurn = player === 1 ? 2 : 1;
@@ -11638,6 +11639,41 @@ function gomokuNewGame() {
     });
 }
 
+// 五子棋随机反馈：翻字卡 / 表情包 / 戳一戳，概率随机（chance 为触发概率）
+async function gomokuReact(activeChar, chance) {
+    if (chance < 1 && Math.random() > chance) return;
+    const act = activeChar || getActiveChar();
+    const cName = (act && act.name) || 'TA';
+    const rr = Math.random();
+    try {
+        if (rr < 0.34) {
+            // 翻字卡（按当前角色分组过滤）
+            const allWords = (await getAllFromDB('wordCards')) || [];
+            let valid = allWords;
+            const groups = (act && act.activeReplyGroups) || currentSettings.activeReplyGroups;
+            if (groups && groups.length) {
+                const f = allWords.filter(w => groups.includes(w.category || '日常'));
+                if (f.length) valid = f;
+            }
+            if (valid.length) {
+                await saveAndRenderMsg('yume', valid[Math.floor(Math.random() * valid.length)].text, null, Date.now(), true, act);
+            }
+        } else if (rr < 0.67) {
+            // 表情包
+            const stickers = (await getAllFromDB('stickers')) || [];
+            if (stickers.length) {
+                await saveAndRenderMsg('yume', '', stickers[Math.floor(Math.random() * stickers.length)].url, Date.now(), true, act);
+            }
+        } else {
+            // 戳一戳
+            if (typeof customPokeList !== 'undefined' && customPokeList.length) {
+                const p = customPokeList[Math.floor(Math.random() * customPokeList.length)];
+                await saveAndRenderMsg('system', `${cName} ${p}`, null, Date.now(), true);
+            }
+        }
+    } catch (err) { /* 忽略反馈异常 */ }
+}
+
 function gomokuUndo() {
     if (gomokuOver || gomokuThinking || gomokuHistory.length === 0) return;
     const last = gomokuHistory.pop();
@@ -11652,6 +11688,7 @@ function gomokuUndo() {
     gomokuTurn = 1;
     drawGomoku();
     updateGomokuStatus();
+    gomokuReact(getActiveChar(), 0.6);
 }
 
 /* ================= 记账与攒钱系统核心逻辑 ================= */
