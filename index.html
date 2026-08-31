@@ -3148,6 +3148,12 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
                 <div class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"></circle><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"></circle></svg></div>
                 <span>即兴问答</span>
             </div>
+
+            <!-- 新增：五子棋 -->
+            <div class="app-item" onclick="openGomokuModal()">
+                <div class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" fill="none"></rect><path d="M4 9h16M4 15h16M9 4v16M15 4v16"></path><circle cx="8" cy="8" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="16" cy="13" r="1.6" fill="currentColor" stroke="none"></circle><circle cx="12" cy="18" r="1.6" fill="currentColor" stroke="none"></circle></svg></div>
+                <span>五子棋</span>
+            </div>
             
         </div>
     </div>
@@ -5016,6 +5022,23 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         
         <div style="display:flex; gap:12px;">
             <button class="outline-btn" style="flex:1; margin:0;" onclick="document.getElementById('taQuestionBankModal').style.display='none'">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- 五子棋弹窗 -->
+<div class="modal" id="gomokuModal" style="z-index: 999999;">
+    <div class="modal-content" style="max-width: 520px; padding: 20px; gap: 15px; width: 94vw;">
+        <div style="text-align:center; font-weight:900; font-size:1.2em; font-style:italic;">GOMOKU · 五子棋</div>
+        <div style="text-align:center; font-size:0.92em; opacity:0.8; font-weight:800; min-height:1.4em;" id="gomokuStatus">准备开始…</div>
+        <div style="display:flex; justify-content:center; align-items:center; background:var(--panel-bg); border:3px solid var(--border-color); border-radius:10px; padding:10px; box-shadow:4px 4px 0 var(--border-color);">
+            <canvas id="gomokuCanvas" width="480" height="480" style="display:block; max-width:100%; height:auto; touch-action:manipulation; cursor:pointer;"></canvas>
+        </div>
+        <div style="font-size:0.78em; opacity:0.6; font-weight:700; text-align:center;">点击棋盘落子，TA 会稍作思考后回应</div>
+        <div style="display:flex; gap:12px;">
+            <button class="outline-btn" style="flex:1; margin:0; border-radius:4px;" onclick="gomokuNewGame()">新对局</button>
+            <button class="outline-btn" style="flex:1; margin:0; border-radius:4px;" onclick="gomokuUndo()">悔棋</button>
+            <button class="outline-btn" style="flex:1; margin:0; border-radius:4px;" onclick="document.getElementById('gomokuModal').style.display='none'">关闭</button>
         </div>
     </div>
 </div>
@@ -11076,7 +11099,7 @@ async function sendQaQuestion() {
     chatCont.appendChild(typingIndicator);
     typingIndicator.style.display = 'flex';
     setTimeout(() => { if (typeof scrollToBottom === 'function') scrollToBottom(false); }, 50);
-    await delay(1000 + Math.random() * 1000);
+    await delay(1000 + Math.random() * 2000);
 
     const ansHtml = `
         <div style="display:flex; flex-direction:column; gap:6px;">
@@ -11088,7 +11111,7 @@ async function sendQaQuestion() {
     document.body.appendChild(typingIndicator);
 
     // 4. 从全局字卡库随机抽取 1~3 张作为"翻卡反馈"
-    await delay(1000 + Math.random() * 2000);
+    await delay(3000 + Math.random() * 2000);
     const allCards = await getAllFromDB('wordCards');
     // 只抽当前角色分组内的字卡，避免混入其他角色的字卡
     let validWords = allCards || [];
@@ -11386,6 +11409,249 @@ async function answerTaQuestion(qid, idx) {
     await saveAndRenderMsg('user', ansHtml, null, Date.now(), true);
 
     taFlipCards(activeChar);
+}
+
+/* ================= 五子棋系统 ================= */
+const GOMOKU_SIZE = 15;
+let gomokuBoard = [];
+let gomokuTurn = 1;          // 1=你(黑), 2=TA(白)
+let gomokuOver = false;
+let gomokuHistory = [];      // [{r,c,player}]
+let gomokuThinking = false;
+let gomokuCanvas = null;
+let gomokuCtx = null;
+
+function getActiveChar() {
+    return charactersList.find(c => c.id === currentChatId) || charactersList[0] || {};
+}
+function getTaName() {
+    const t = getActiveChar();
+    return (t && t.name) || 'TA';
+}
+
+function initGomoku() {
+    gomokuBoard = Array.from({ length: GOMOKU_SIZE }, () => new Array(GOMOKU_SIZE).fill(0));
+    gomokuHistory = [];
+    gomokuTurn = 1;
+    gomokuOver = false;
+    gomokuThinking = false;
+    if (!gomokuCanvas) {
+        gomokuCanvas = document.getElementById('gomokuCanvas');
+        gomokuCtx = gomokuCanvas.getContext('2d');
+        gomokuCanvas.addEventListener('click', gomokuOnClick);
+    }
+    drawGomoku();
+    updateGomokuStatus();
+}
+
+function openGomokuModal() {
+    document.getElementById('appPanel').style.display = 'none';
+    initGomoku();
+    document.getElementById('gomokuModal').style.display = 'flex';
+    saveAndRenderMsg('system', `你和 ${getTaName()} 开了一局五子棋，你执黑先手。`, null, Date.now(), true);
+}
+
+function drawGomoku() {
+    const ctx = gomokuCtx;
+    const S = 480, cell = S / (GOMOKU_SIZE + 1);
+    ctx.clearRect(0, 0, S, S);
+    ctx.fillStyle = '#dcb35c';
+    ctx.fillRect(0, 0, S, S);
+    ctx.strokeStyle = '#8a5a2a';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < GOMOKU_SIZE; i++) {
+        const p = cell * (i + 1);
+        ctx.beginPath(); ctx.moveTo(cell, p); ctx.lineTo(S - cell, p); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(p, cell); ctx.lineTo(p, S - cell); ctx.stroke();
+    }
+    ctx.fillStyle = '#8a5a2a';
+    const stars = [3, 7, 11];
+    stars.forEach(r => stars.forEach(c => {
+        ctx.beginPath(); ctx.arc(cell * (c + 1), cell * (r + 1), 4, 0, Math.PI * 2); ctx.fill();
+    }));
+    for (let r = 0; r < GOMOKU_SIZE; r++) {
+        for (let c = 0; c < GOMOKU_SIZE; c++) {
+            const v = gomokuBoard[r][c];
+            if (!v) continue;
+            const x = cell * (c + 1), y = cell * (r + 1);
+            ctx.beginPath();
+            ctx.arc(x, y, cell * 0.42, 0, Math.PI * 2);
+            ctx.shadowColor = 'rgba(0,0,0,0.45)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 2;
+            ctx.fillStyle = v === 1 ? '#111' : '#f5f5f5';
+            ctx.fill();
+            ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+            ctx.strokeStyle = v === 1 ? '#000' : '#c9c9c9';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+    }
+    if (gomokuHistory.length) {
+        const last = gomokuHistory[gomokuHistory.length - 1];
+        const x = cell * (last.c + 1), y = cell * (last.r + 1);
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#e74c3c'; ctx.fill();
+    }
+}
+
+function gomokuOnClick(e) {
+    if (gomokuOver || gomokuThinking || gomokuTurn !== 1) return;
+    const rect = gomokuCanvas.getBoundingClientRect();
+    const S = 480, cell = S / (GOMOKU_SIZE + 1);
+    const mx = (e.clientX - rect.left) * (S / rect.width);
+    const my = (e.clientY - rect.top) * (S / rect.height);
+    const col = Math.round(mx / cell) - 1;
+    const row = Math.round(my / cell) - 1;
+    if (row < 0 || row >= GOMOKU_SIZE || col < 0 || col >= GOMOKU_SIZE) return;
+    if (gomokuBoard[row][col] !== 0) return;
+    const isFirst = gomokuHistory.length === 0;
+    placeGomoku(row, col, 1);
+    if (gomokuOver) return;
+    if (isFirst) {
+        saveAndRenderMsg('yume', '好呀，陪你下～轮到你了。', null, Date.now(), true, getActiveChar());
+    }
+    gomokuThinking = true;
+    updateGomokuStatus();
+    setTimeout(() => { gomokuTaMove(); }, 600 + Math.random() * 1200);
+}
+
+function placeGomoku(r, c, player) {
+    gomokuBoard[r][c] = player;
+    gomokuHistory.push({ r, c, player });
+    drawGomoku();
+    if (checkGomokuWin(r, c, player)) {
+        gomokuOver = true;
+        updateGomokuStatus();
+        if (player === 1) {
+            saveAndRenderMsg('system', '你赢了这局五子棋！', null, Date.now(), true);
+            saveAndRenderMsg('yume', '哎呀～五子棋输给你了，再来一局？', null, Date.now(), true, getActiveChar());
+        } else {
+            saveAndRenderMsg('system', `${getTaName()} 赢了这局五子棋！`, null, Date.now(), true);
+            saveAndRenderMsg('yume', `嘿嘿，这局我赢啦～要不要再来？`, null, Date.now(), true, getActiveChar());
+        }
+        return;
+    }
+    if (gomokuHistory.length === GOMOKU_SIZE * GOMOKU_SIZE) {
+        gomokuOver = true;
+        updateGomokuStatus();
+        saveAndRenderMsg('system', '这局五子棋下和了！', null, Date.now(), true);
+        return;
+    }
+    gomokuTurn = player === 1 ? 2 : 1;
+    updateGomokuStatus();
+}
+
+function checkGomokuWin(r, c, player) {
+    const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    for (const [dr, dc] of dirs) {
+        let cnt = 1;
+        for (let s = 1; s < 5; s++) {
+            const nr = r + dr * s, nc = c + dc * s;
+            if (nr < 0 || nr >= GOMOKU_SIZE || nc < 0 || nc >= GOMOKU_SIZE || gomokuBoard[nr][nc] !== player) break;
+            cnt++;
+        }
+        for (let s = 1; s < 5; s++) {
+            const nr = r - dr * s, nc = c - dc * s;
+            if (nr < 0 || nr >= GOMOKU_SIZE || nc < 0 || nc >= GOMOKU_SIZE || gomokuBoard[nr][nc] !== player) break;
+            cnt++;
+        }
+        if (cnt >= 5) return true;
+    }
+    return false;
+}
+
+function gomokuTaMove() {
+    gomokuThinking = false;
+    if (gomokuOver || gomokuTurn !== 2) return;
+    const empty = [];
+    for (let r = 0; r < GOMOKU_SIZE; r++) for (let c = 0; c < GOMOKU_SIZE; c++) if (gomokuBoard[r][c] === 0) empty.push([r, c]);
+    if (!empty.length) return;
+    let best = null, bestScore = -1;
+    for (const [r, c] of empty) {
+        const atk = gomokuEval(r, c, 2);
+        const def = gomokuEval(r, c, 1) * 1.1;
+        const score = Math.max(atk, def);
+        if (score > bestScore) { bestScore = score; best = [r, c]; }
+    }
+    if (gomokuHistory.length === 0) best = [7, 7];
+    const [r, c] = best;
+    placeGomoku(r, c, 2);
+}
+
+function gomokuEval(r, c, player) {
+    let total = 0;
+    const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    for (const [dr, dc] of dirs) {
+        let cnt = 1, openEnds = 0, blocked = 0;
+        for (let s = 1; s < 5; s++) {
+            const nr = r + dr * s, nc = c + dc * s;
+            if (nr < 0 || nr >= GOMOKU_SIZE || nc < 0 || nc >= GOMOKU_SIZE) { blocked++; break; }
+            const v = gomokuBoard[nr][nc];
+            if (v === player) cnt++;
+            else if (v === 0) { openEnds++; break; }
+            else { blocked++; break; }
+        }
+        for (let s = 1; s < 5; s++) {
+            const nr = r - dr * s, nc = c - dc * s;
+            if (nr < 0 || nr >= GOMOKU_SIZE || nc < 0 || nc >= GOMOKU_SIZE) { blocked++; break; }
+            const v = gomokuBoard[nr][nc];
+            if (v === player) cnt++;
+            else if (v === 0) { openEnds++; break; }
+            else { blocked++; break; }
+        }
+        total += gomokuScore(cnt, openEnds, blocked);
+    }
+    return total;
+}
+
+function gomokuScore(cnt, openEnds, blocked) {
+    if (cnt >= 5) return 100000;
+    if (blocked >= 2) return 0;
+    const table = { 4: 10000, 3: 1000, 2: 100, 1: 10 };
+    let base = table[cnt] || 0;
+    if (openEnds === 0) base = Math.floor(base * 0.6);
+    return base;
+}
+
+function updateGomokuStatus() {
+    const el = document.getElementById('gomokuStatus');
+    if (!el) return;
+    if (gomokuOver) {
+        el.textContent = '本局结束，点「新对局」再来一局～';
+    } else if (gomokuTurn === 1) {
+        el.textContent = '轮到你落子（黑子）';
+    } else {
+        el.textContent = `${getTaName()} 正在思考…`;
+    }
+}
+
+function gomokuNewGame() {
+    if (gomokuOver || gomokuHistory.length === 0) {
+        initGomoku();
+        saveAndRenderMsg('system', `你和 ${getTaName()} 新开一局五子棋，你执黑先手。`, null, Date.now(), true);
+        return;
+    }
+    showCustomConfirm('确定要重新开始本局吗？', () => {
+        initGomoku();
+        saveAndRenderMsg('system', `你们重新开始了一局五子棋，你执黑先手。`, null, Date.now(), true);
+    });
+}
+
+function gomokuUndo() {
+    if (gomokuOver || gomokuThinking || gomokuHistory.length === 0) return;
+    const last = gomokuHistory.pop();
+    gomokuBoard[last.r][last.c] = 0;
+    if (gomokuHistory.length) {
+        const prev = gomokuHistory[gomokuHistory.length - 1];
+        if (prev.player !== last.player) {
+            gomokuBoard[prev.r][prev.c] = 0;
+            gomokuHistory.pop();
+        }
+    }
+    gomokuTurn = 1;
+    drawGomoku();
+    updateGomokuStatus();
 }
 
 /* ================= 记账与攒钱系统核心逻辑 ================= */
