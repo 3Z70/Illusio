@@ -1909,6 +1909,45 @@ body.theme-glass .music-chat-card {
 body.theme-glass .music-chat-card .mc-cover { border-radius: 8px !important; border: 1.5px solid rgba(255,255,255,0.5) !important; }
 body.theme-glass .music-chat-card .mc-play-btn { background: rgba(255,255,255,0.5) !important; color: var(--text-color) !important; border: 1.5px solid rgba(255,255,255,0.6) !important; box-shadow: none !important; }
 
+/* ================= 抖音 / 小红书分享卡片 (多主题适配) ================= */
+.share-link-card {
+    display: flex; align-items: center; gap: 12px; padding: 10px; cursor: pointer;
+    width: 260px; position: relative; overflow: hidden; text-align: left;
+}
+.share-link-card .sl-cover {
+    width: 52px; height: 52px; border-radius: 8px; flex-shrink: 0;
+    display: flex; justify-content: center; align-items: center; font-size: 24px;
+    border: 2px solid var(--border-color); background: var(--bg-color);
+}
+.share-link-card .sl-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.share-link-card .sl-tag { font-size: 0.7em; font-weight: 900; opacity: 0.8; letter-spacing: 1px; }
+.share-link-card .sl-title { font-weight: 900; font-size: 0.95em; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.share-link-card .sl-desc { font-size: 0.7em; opacity: 0.6; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 1. 默认漫画风主题 */
+.share-link-card {
+    background: var(--panel-bg); border: 3px solid var(--border-color);
+    border-radius: 12px; box-shadow: 4px 4px 0 var(--border-color); color: var(--text-color);
+}
+.share-link-card .sl-cover { border-radius: 8px; border: 2px solid var(--border-color); }
+
+/* 2. 微信主题 (纯白干净小卡片) */
+body.theme-wechat .share-link-card {
+    background: #ffffff !important; border: none !important; border-radius: 8px !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.05) !important; color: #333333 !important;
+}
+[data-theme="dark"] body.theme-wechat .share-link-card { background: #2c2c2c !important; color: #cccccc !important; }
+body.theme-wechat .share-link-card .sl-title { font-weight: 500 !important; font-size: 15px !important; }
+body.theme-wechat .share-link-card .sl-cover { border: none !important; border-radius: 4px !important; }
+
+/* 3. 苹果主题 (圆润链接卡片) */
+body.theme-imessage .share-link-card {
+    background: #f2f2f6 !important; border: 1px solid #e5e5ea !important; border-radius: 16px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03) !important; color: #000000 !important;
+}
+[data-theme="dark"] body.theme-imessage .share-link-card { background: #2c2c2e !important; border-color: #38383a !important; color: #ffffff !important; }
+body.theme-imessage .share-link-card .sl-cover { border: none !important; border-radius: 8px !important; }
+
 /* ================= 打卡与攒钱分享卡片 (多主题完美适配) ================= */
 
 /* 2. 微信主题 (纯白干净小卡片) */
@@ -6788,7 +6827,9 @@ if (extraMsgData && extraMsgData.quote) {
 }
 
 let bubbleHtml = ""; let imgLoadAttr = isNew ? 'onload="window.scrollToBottom && scrollToBottom(false)"' : '';
-let isSpecialCard = text && (text.includes('checkin-chat-card') || text.includes('red-packet-card') || text.includes('sudden-thought-card') || text.includes('event-card') || text.includes('music-chat-card'));
+    let isSpecialCard = text && (text.includes('checkin-chat-card') || text.includes('red-packet-card')
+    || text.includes('sudden-thought-card') || text.includes('event-card') || text.includes('music-chat-card')
+    || text.includes('share-link-card'));
 let bClass = isSpecialCard ? '' : 'bubble';
 
 if (text && imgUrl) { 
@@ -6916,10 +6957,43 @@ function handleKeyPress(e) {
         sendMessage(); 
     } 
 }
+// 生成抖音 / 小红书分享链接卡片（仅当你是发消息内容里含此类链接时）
+function makeShareCardHtml(rawText) {
+    try {
+        const urlMatch = rawText.match(/https?:\/\/[^\s]+/);
+        if (!urlMatch) return null;
+        const url = urlMatch[0];
+        let isDouyin = false;
+        if (/douyin\.com|v\.douyin\.com|iesdouyin/i.test(url)) isDouyin = true;
+        else if (/xiaohongshu\.com|xhslink\.com/i.test(url)) { /* xiaohongshu */ }
+        else return null;
+
+        const tag = isDouyin ? '来自 抖音' : '来自 小红书';
+        const icon = isDouyin ? '🎵' : '📕';
+        const coverColor = isDouyin ? '#161823' : '#ff2442';
+        const title = isDouyin ? '抖音视频分享' : '小红书笔记分享';
+        const desc = isDouyin ? '点击查看完整视频' : '点击查看完整笔记';
+        const enc = encodeURIComponent(url);
+        return `<div class="share-link-card" onclick="openShareLink('${enc}')">
+            <div class="sl-cover" style="color:#fff; background:${coverColor};">${icon}</div>
+            <div class="sl-info">
+                <div class="sl-tag" style="${isDouyin ? '' : 'color:#ff2442;'}">${tag}</div>
+                <div class="sl-title">${title}</div>
+                <div class="sl-desc">${escapeHtml(url)}</div>
+            </div>
+        </div>`;
+    } catch (e) { return null; }
+}
+
+// 点击分享卡片时在新标签打开原链接
+function openShareLink(enc) {
+    try { window.open(decodeURIComponent(enc), '_blank'); } catch (e) {}
+}
+
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.innerText.trim(); // 从 value 改成 innerText获取文本
-            
+    
             // 如果没打字（输入框为空）就点击了发送键：
             if (!text) {
                 // 只要处于连发模式，这一刀“空发”就会作为触发指令，结算所有暂存消息！
@@ -6930,7 +7004,8 @@ async function sendMessage() {
             }
 
 const qData = currentQuoteData; clearQuote();
-await saveAndRenderMsg('user', text, null, Date.now(), true, null, qData);
+const shareCard = makeShareCardHtml(text);
+await saveAndRenderMsg('user', shareCard || text, null, Date.now(), true, null, qData);
 input.innerText = ''; 
             if (!isBatchMode) simulateReadAndReply(); // 连发模式下不触发对方回复
         }
