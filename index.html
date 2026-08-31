@@ -11301,7 +11301,7 @@ async function taFlipCards(activeChar) {
         if (filtered.length > 0) validWords = filtered;
     }
     const cardPool = validWords.map(c => c.text);
-    await delay(1000 + Math.random() * 2000);
+    await delay(3000 + Math.random() * 2000);
     if (cardPool.length > 0) {
         const cardCount = Math.random() < 0.35 ? 1 : (Math.random() < 0.5 ? 2 : 3);
         const shuffled = cardPool.slice().sort(() => 0.5 - Math.random());
@@ -11349,7 +11349,7 @@ async function triggerTaQuestion() {
     chatCont.appendChild(typingIndicator);
     typingIndicator.style.display = 'flex';
     setTimeout(() => { if (typeof scrollToBottom === 'function') scrollToBottom(false); }, 50);
-    await new Promise(res => setTimeout(res, 1400));
+    await new Promise(res => setTimeout(res, 1000 + Math.random() * 2000));
 
     let optHtml = '';
     item.opts.forEach((o, i) => {
