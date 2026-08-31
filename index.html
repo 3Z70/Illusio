@@ -5001,12 +5001,12 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         <div style="text-align:center; font-weight:900; font-size:1.2em; font-style:italic;">QUESTION BANK</div>
         
         <div style="font-size:0.82em; opacity:0.75; font-weight:700; line-height:1.5;">
-            TA 会从这里的题目随机出题问你。<br>每题用 <b>|</b> 分隔格式：<span style="font-family:monospace;">问题|选项1|选项2</span>
+            TA 会从这里的题目随机出题问你。<br>每题用 <b>|</b> 分隔格式：<span style="font-family:monospace;">问题|选项1|选项2</span><br>可一次输入多道，<b>用空行</b>把每道题隔开，会自动拆成一条一条。
         </div>
         
         <div class="form-group" style="margin-bottom:0;">
             <label>添加题目</label>
-            <textarea id="taQuestionBankInput" rows="3" placeholder="问题|选项1|选项2|选项3..." style="width:100%; padding:10px; border:3px solid var(--border-color); border-radius:6px; font-weight:700; outline:none; background:var(--bg-color); color:var(--text-color); resize:none;"></textarea>
+            <textarea id="taQuestionBankInput" rows="4" placeholder="问题|选项1|选项2..." style="width:100%; padding:10px; border:3px solid var(--border-color); border-radius:6px; font-weight:700; outline:none; background:var(--bg-color); color:var(--text-color); resize:none;"></textarea>
             <button id="taQuestionBankAddBtn" class="action-btn" style="flex:1; margin:8px 0 0 0; border-radius:4px; font-size:1em;" onclick="addTaQuestion()">添加题目</button>
         </div>
         
@@ -11236,31 +11236,46 @@ function editTaQuestion(index) {
     document.getElementById('taQuestionBankInput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// 添加或保存题目（问题|选项1|选项2...）
+// 添加或保存题目（问题|选项1|选项2...，多道题用空行分隔）
 async function addTaQuestion() {
-    const raw = document.getElementById('taQuestionBankInput').value.trim();
-    if (!raw) { showCustomConfirm('请先输入题目和选项哦~', () => {}); return; }
-    const parts = raw.split('|').map(s => s.trim()).filter(s => s);
-    if (parts.length < 3) {
-        showCustomConfirm('需要用 | 分隔：题目|选项1|选项2（至少 2 个选项）！', () => {});
-        return;
-    }
-    const question = parts[0];
-    const opts = parts.slice(1);
+    const raw = document.getElementById('taQuestionBankInput').value;
+    if (!raw.trim()) { showCustomConfirm('请先输入题目和选项哦~', () => {}); return; }
 
+    // 编辑模式：整块只覆盖一道
     if (editingTaQuestionIndex >= 0) {
-        // 编辑模式：覆盖原题
-        qBankData[editingTaQuestionIndex] = { q: question, opts: opts };
+        const parts = raw.trim().split('|').map(s => s.trim()).filter(s => s);
+        if (parts.length < 3) {
+            showCustomConfirm('需要用 | 分隔：题目|选项1|选项2（至少 2 个选项）！', () => {});
+            return;
+        }
+        qBankData[editingTaQuestionIndex] = { q: parts[0], opts: parts.slice(1) };
         editingTaQuestionIndex = -1;
         const addBtn = document.getElementById('taQuestionBankAddBtn');
         if (addBtn) addBtn.innerText = "添加题目";
-    } else {
-        qBankData.push({ q: question, opts: opts });
+        await saveTaQuestionBank();
+        document.getElementById('taQuestionBankInput').value = '';
+        renderTaQuestionBank();
+        return;
     }
 
-    await saveTaQuestionBank();
-    document.getElementById('taQuestionBankInput').value = '';
-    renderTaQuestionBank();
+    // 新增模式：用空白行作为分隔符，把多道题自动拆成一条一条
+    const blocks = raw.split(/\n+/).map(s => s.trim()).filter(s => s.length > 0);
+    let addedCount = 0;
+    for (let bi = 0; bi < blocks.length; bi++) {
+        const parts = blocks[bi].split('|').map(s => s.trim()).filter(s => s);
+        if (parts.length < 3) {
+            showCustomConfirm(`第 ${bi + 1} 条格式不对，需要用 | 分隔：题目|选项1|选项2（至少 2 个选项）！已成功添加 ${addedCount} 条。`, () => {});
+            break;
+        }
+        qBankData.push({ q: parts[0], opts: parts.slice(1) });
+        addedCount++;
+    }
+
+    if (addedCount > 0) {
+        await saveTaQuestionBank();
+        document.getElementById('taQuestionBankInput').value = '';
+        renderTaQuestionBank();
+    }
 }
 
 async function removeTaQuestion(index, e) {
