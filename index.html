@@ -7028,6 +7028,9 @@ async function triggerYumeReply() {
     // --- 2. 打乱说话顺序（避免每次都是群主先开口） ---
     charPool.sort(() => Math.random() - 0.5);
 
+    // 记录本轮回复开始前的消息条数，用于撤回功能只针对本轮刚发的消息
+    const roundMsgStartIndex = allMessagesCache.length;
+
 // --- AI 随机引用机制 (3% 概率，随机引用 15 条以内的 1~3 条) ---
 let recentUserMsgs = allMessagesCache.filter(m => m.sender === 'user').slice(-15);
 let taQuotesToUse = [];
@@ -7163,6 +7166,43 @@ if (hasStickers) {
     typingIndicator.style.display = 'none';
     document.body.appendChild(typingIndicator); // 归位到外部，避免被夹在历史记录里
     isReplying = false;
+
+    // —— 对方自动撤回功能：整轮回复后 6% 概率撤回本轮刚发的其中一条 ——
+    if (Math.random() < 0.06) {
+        // 收集本轮刚发的 TA 消息（按本轮起点 index 划分）
+        let roundYumeMsgs = [];
+        for (let i = roundMsgStartIndex; i < allMessagesCache.length; i++) {
+            const m = allMessagesCache[i];
+            if (m && m.sender === 'yume' && m.chatId === currentChatId) {
+                roundYumeMsgs.push({ m: m, cacheIndex: i });
+            }
+        }
+        if (roundYumeMsgs.length > 0) {
+            // 记录本次撤回所属的房间，等待期间切房就放弃
+            const recallRoomId = currentChatId;
+            // 模拟 TA 反悔决定的自然停顿
+            await delay(600 + Math.random() * 1400);
+            // 防串台：等待期间切换了房间，就放弃这次撤回，免得撤错消息
+            if (currentChatId !== recallRoomId) { /* 放弃 */ }
+            else {
+                const pick = roundYumeMsgs[Math.floor(Math.random() * roundYumeMsgs.length)];
+                const target = pick.m;
+                const msgId = target.id;
+                // 即时：在原消息位置插入提示，并移除原消息气泡
+                const chatContainer = document.getElementById('chatContainer');
+                const msgEl = chatContainer.querySelector(`.message[data-msg-id="${msgId}"]`);
+                if (msgEl) {
+                    msgEl.insertAdjacentHTML('beforebegin', '<div class="system-msg-box"><div class="system-msg-content">对方撤回一条消息</div></div>');
+                    msgEl.remove();
+                }
+                // 持久化：原位置原位替换成提示（保持数组顺序），并从数据库删除原消息
+                const notiMsg = { id: 'recall-' + msgId, sender: 'system', text: '对方撤回一条消息', timestamp: target.timestamp, chatId: currentChatId };
+                allMessagesCache[pick.cacheIndex] = notiMsg;
+                await deleteFromDB('messages', msgId);
+                await putToDB('messages', notiMsg);
+            }
+        }
+    }
 }
 
 // --- 动态注入的群聊设置系统 (支持继承与独立新群) ---
