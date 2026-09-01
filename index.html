@@ -3746,6 +3746,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
                     <input type="text" id="dataIdInput" readonly style="background:var(--border-color); color:var(--bg-color);">
                 </div>
                 <button class="outline-btn danger-btn" onclick="resetAllData()">重置所有数据</button>
+                <button class="outline-btn danger-btn" onclick="clearAllChat()">清空聊天记录</button>
 <button class="outline-btn" onclick="openAdvancedExportModal()">高级按需导出</button>
                 <button class="outline-btn" onclick="document.getElementById('importInput').click()">导入数据包</button>
                 <input type="file" id="importInput" accept=".json" style="display:none;" onchange="importData(event)">
@@ -6312,6 +6313,25 @@ function resetAllData() {
         document.body.appendChild(t);
         setTimeout(()=>t.style.opacity='1', 10);
         setTimeout(()=>location.reload(), 1500);
+    });
+}
+
+function clearAllChat() {
+    showCustomConfirm("确定要清空所有聊天记录吗？\n仅删除聊天消息，保留角色、字卡、贴纸和设置。\n操作不可逆，请确认已导出备份！", async () => {
+        // 清空消息数据库
+        await clearDBStore('messages');
+        // 重置内存缓存和加载分页
+        allMessagesCache = [];
+        messageOffset = 0;
+        // 清空当前聊天界面并重新加载（得到空会话）
+        document.getElementById('chatContainer').innerHTML = '';
+        await loadMessages(true);
+        let t = document.createElement('div');
+        t.style.cssText = 'position:fixed; bottom:120px; left:50%; transform:translateX(-50%); background:#ff4444; color:#fff; padding:8px 16px; border-radius:20px; font-weight:900; font-size:0.9em; z-index:999999; opacity:0; transition:opacity 0.3s; pointer-events:none; box-shadow:0 4px 10px rgba(0,0,0,0.2);';
+        t.innerText = '聊天记录已清空';
+        document.body.appendChild(t);
+        setTimeout(()=>t.style.opacity='1', 10);
+        setTimeout(()=>t.remove(), 1800);
     });
 }
 
