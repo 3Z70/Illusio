@@ -3412,7 +3412,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
                     <input type="range" id="maxTime" min="0.1" max="120" step="0.1" value="3.0" oninput="updateSliders()">
                 </div>
                 <div class="setting-row">
-                    <label>已读不回</label>
+                    <label>未读模式</label>
                     <label class="switch">
                         <input type="checkbox" id="readButNoReplyInput">
                         <span class="slider"></span>
@@ -6881,6 +6881,12 @@ await putToDB('messages', msg);
             if (isSimulatingRead) return; 
             isSimulatingRead = true;
             
+            // 未读模式：每句话有 5% 概率保持未读，不点亮已读、也不触发任何回复（单聊/群聊整句未读）
+            if (currentSettings.readButNoReply === "true" && Math.random() < 0.05) {
+                isSimulatingRead = false;
+                return;
+            }
+            
             // 1. 模拟回声的已读延迟 (500ms ~ 2000ms)
             const readDelay = Math.random() * 1500 + 500;
             await new Promise(res => setTimeout(res, readDelay));
@@ -7022,12 +7028,7 @@ if (Math.random() < 0.03 && recentUserMsgs.length > 0) {
     // --- 3. 让群里的每个人【独立】进行判定和说话 ---
     for (let replier of charPool) {
         
-        // 每个人【独立的】已读不回判定 (如果在设置里开启了的话，每个人都有5%概率不说话)
-        if (currentSettings.readButNoReply === "true" && Math.random() < 0.05) {
-            continue; // 这个人决定潜水不说话了，直接跳过看下一个人
-        }
-
-        // 这个人决定说话，获取属于他【自己的】连发次数 (1到5条)
+        // 获取属于他【自己的】连发次数 (1到5条)
         const count = getReplyCount(); 
 
         for(let i = 0; i < count; i++) {
@@ -7398,7 +7399,7 @@ window.confirmCreateNewGroup = async function(idsStr) {
             // 发出这条戳一戳
             await saveAndRenderMsg('system', msgText, null, Date.now(), true);
             
-            // 恢复普通消息机制！把它当作发了一条消息，AI会正常走“已读不回”或“回复”的逻辑
+            // 恢复普通消息机制！把它当作发了一条消息，AI会正常走“未读”（5%概率不读不回复）或“回复”的逻辑
             if (!isBatchMode) simulateReadAndReply();
         }
 
