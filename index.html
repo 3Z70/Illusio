@@ -6901,8 +6901,8 @@ await putToDB('messages', msg);
             if (isSimulatingRead) return; 
             isSimulatingRead = true;
             
-            // 未读模式：每句话有 5% 概率保持未读，不点亮已读、也不触发任何回复（单聊/群聊整句未读）
-            if (currentSettings.readButNoReply === "true" && Math.random() < 0.05) {
+            // 未读模式：每句话有 8% 概率保持未读，不点亮已读、也不触发任何回复（单聊/群聊整句未读）
+            if (currentSettings.readButNoReply === "true" && Math.random() < 0.08) {
                 isSimulatingRead = false;
                 return;
             }
