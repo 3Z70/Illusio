@@ -3470,16 +3470,16 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
 </div>
 
 <div class="setting-row">
-    <label>允许TA主动发消息</label>
-    <label class="switch">
-        <input type="checkbox" id="proactiveMsgEnabledInput">
-        <span class="slider"></span>
-    </label>
-</div>
-<div class="form-group">
-    <label>无操作多久后主动发: <span id="proactiveMsgTimeVal">5</span> 分钟</label>
-    <input type="range" id="proactiveMsgTimeInput" min="1" max="60" step="1" value="5" oninput="document.getElementById('proactiveMsgTimeVal').innerText=this.value">
-</div>
+                    <label>每日一篇随笔</label>
+                    <label class="switch">
+                        <input type="checkbox" id="diaryEnabledInput">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <label>随笔条目数</label>
+                    <input type="number" id="diaryCountInput" min="1" max="6" value="3" style="width:60px">
+                </div>
 <div class="setting-row">
     <label>系统弹窗通知</label>
     <button class="outline-btn" style="width:auto; margin:0; padding:4px 12px; font-size:0.85em;" onclick="requestNotifyPerm()">请求授权</button>
@@ -5357,7 +5357,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         let currentChatId = 'default';
 
                 let currentSettings = { 
-theme: "light", dataId: generateUUID(), enableKeepAlive: "false", petEnabled: "false", petSize: 100, petSpeed: 2, petRoam: "false", petIdleUrl: "", petWalkUrl: "", petDragUrl: "", charName: "TA", userName: "我", minTime: 1.0, maxTime: 3.0, readButNoReply: "false", showFloatingBall: "true", enableStats: "true", showDotBg: "true", enableCardSplicing: "false", proactiveMsgEnabled: "false", proactiveMsgTime: 5,
+theme: "light", dataId: generateUUID(), enableKeepAlive: "false", petEnabled: "false", petSize: 100, petSpeed: 2, petRoam: "false", petIdleUrl: "", petWalkUrl: "", petDragUrl: "", charName: "TA", userName: "我", minTime: 1.0, maxTime: 3.0, readButNoReply: "false", showFloatingBall: "true", enableStats: "true", showDotBg: "true", enableCardSplicing: "false", diaryEnabled: "false", diaryCount: 3,
     avatarShape: "square",
             avatarUrl: "", frameUrl: "", frameX: 50, frameY: 50, frameScale: 100, 
             userAvatarUrl: "", userFrameUrl: "", userFrameX: 50, userFrameY: 50, userFrameScale: 100, 
