@@ -1175,53 +1175,6 @@ body.theme-wechat .form-group input[type="range"]::-webkit-slider-thumb {
     margin-top: 2px;
 }
 
-/* --- 信件系统专属 CSS --- */
-.letter-paper {
-    background-color: var(--panel-bg);
-    /* 核心：生成逼真的信纸横线 */
-    background-image: repeating-linear-gradient(transparent, transparent 31px, rgba(128,128,128,0.2) 31px, rgba(128,128,128,0.2) 32px);
-    background-attachment: local;
-    color: var(--text-color);
-    padding: 32px 20px 20px 20px;
-    border-radius: 4px;
-    font-family: inherit;
-    line-height: 32px; /* 与横线完美对齐 */
-    font-weight: 900;
-    border: 3px solid var(--border-color);
-    white-space: pre-wrap;
-    box-shadow: 6px 6px 0 var(--border-color);
-    margin-bottom: 15px;
-    font-size: 1.05em;
-    word-break: break-all;
-    position: relative;
-}
-/* 给信纸加个复古小印记 */
-.letter-paper::after {
-    content: 'POSTBOX';
-    position: absolute;
-    bottom: -15px;
-    right: 10px;
-    font-size: 0.6em;
-    font-weight: 900;
-    font-style: italic;
-    letter-spacing: 2px;
-    background: var(--text-color);
-    color: var(--bg-color);
-    padding: 2px 8px;
-    border-radius: 4px;
-}
-.letter-item {
-    background: var(--panel-bg); border: 3px solid var(--border-color); border-radius: 8px; padding: 15px;
-    display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-    box-shadow: 3px 3px 0 var(--border-color); transition: transform 0.1s;
-}
-.letter-item:active { transform: translate(2px, 2px); box-shadow: 0 0 0; }
-.letter-item.unread { border-style: dashed; }
-.unread-dot {
-    width: 10px; height: 10px; background: #ff4444; border: 2px solid var(--border-color);
-    border-radius: 50%; display: inline-block; flex-shrink: 0;
-}
-
 /* --- 生理期日历专属 CSS --- */
 .cal-day {
     aspect-ratio: 1; display: flex; justify-content: center; align-items: center;
@@ -2154,8 +2107,7 @@ body.theme-magazine .form-group select,
 body.theme-magazine .form-group textarea,
 body.theme-magazine .app-panel,
 body.theme-magazine .app-icon,
-body.theme-magazine .checkin-item,
-body.theme-magazine .letter-item {
+body.theme-magazine .checkin-item {
     border-width: 1px !important;
     border-style: solid !important;
     border-color: var(--border-color) !important;
@@ -3111,11 +3063,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
                 <div class="app-icon"><svg viewBox="0 0 24 24"><path d="M4 11a9 9 0 0 1 9 9"></path><path d="M4 4a16 16 0 0 1 16 16"></path><circle cx="5" cy="19" r="1"></circle></svg></div>
                 <span>聊天切换</span>
             </div>
-<div class="app-item" onclick="openLetterModal()">
-    <div class="app-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></div>
-    <span>写信</span>
-</div>
-            <div class="app-item" onclick="openAnniversaryModal()">
+<div class="app-item" onclick="openAnniversaryModal()">
                 <div class="app-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div>
                 <span>纪念日</span>
             </div>
@@ -3469,17 +3417,6 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
     </label>
 </div>
 
-<div class="setting-row">
-                    <label>每日一篇随笔</label>
-                    <label class="switch">
-                        <input type="checkbox" id="diaryEnabledInput">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="setting-row">
-                    <label>随笔条目数</label>
-                    <input type="number" id="diaryCountInput" min="1" max="6" value="3" style="width:60px">
-                </div>
 <div class="setting-row">
     <label>系统弹窗通知</label>
     <button class="outline-btn" style="width:auto; margin:0; padding:4px 12px; font-size:0.85em;" onclick="requestNotifyPerm()">请求授权</button>
@@ -3880,90 +3817,6 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
     </div>
 </div>
 
-<!-- 写信/邮箱 模态框 -->
-<div class="modal" id="letterModal" style="z-index: 99999;">
-    <div class="modal-content" style="height: 85vh; display: flex; flex-direction: column;">
-        <div style="padding:15px; border-bottom: 4px solid var(--border-color); font-weight:900; font-size:1.2em; text-align:center; font-style: italic; display:flex; justify-content:space-between; align-items:center;">
-            <span></span>
-            <span>POSTBOX</span>
-            <button class="icon-btn" style="border:none; color:#ff4444; background:transparent; padding:0; box-shadow:none; font-size:1.2em;" onclick="document.getElementById('letterModal').style.display='none'">✖</button>
-        </div>
-        
-        <div class="tabs" style="border-bottom: 4px solid var(--border-color); flex-shrink: 0; background: var(--bg-color);">
-            <button class="tab-btn active" id="letterTabInbox" onclick="switchLetterTab('inbox')">收信箱</button>
-            <button class="tab-btn" id="letterTabSent" onclick="switchLetterTab('sent')">发信箱</button>
-            <button class="tab-btn" id="letterTabWrite" onclick="switchLetterTab('write')">写信</button>
-        </div>
-
-        <!-- 收信箱 -->
-        <div id="letter-tab-inbox" class="tab-content active" style="padding:0; display:flex; flex-direction:column;">
-            <div style="padding: 10px 15px; border-bottom: 3px solid var(--border-color); background: var(--panel-bg); display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight:900; font-size:0.9em; font-style:italic;">允许 TA 随机主动写信</span>
-                <label class="switch">
-                    <input type="checkbox" id="proactiveLetterToggle" onchange="toggleProactiveLetter()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div id="inboxListRender" style="flex:1; overflow-y:auto; padding:15px; display:flex; flex-direction:column; gap:12px; background:var(--bg-color); background-image:var(--bg-pattern); background-size:var(--bg-size);"></div>
-        </div>
-
-        <!-- 发信箱 -->
-        <div id="letter-tab-sent" class="tab-content" style="padding:15px; overflow-y:auto; display:none; flex-direction:column; gap:12px; background:var(--bg-color); background-image:var(--bg-pattern); background-size:var(--bg-size);"></div>
-
-        <!-- 写信 -->
-        <div id="letter-tab-write" class="tab-content" style="padding:20px; display:none; flex-direction:column; background:var(--bg-color); background-image:var(--bg-pattern); background-size:var(--bg-size);">
-            <div style="flex:1; display:flex; flex-direction:column; position:relative;">
-                <!-- 模拟复古圆形邮戳和波浪线 -->
-                <div style="position:absolute; top: 15px; right: 20px; width: 60px; height: 60px; border: 3px solid var(--border-color); border-radius: 50%; opacity: 0.35; z-index: 2; pointer-events: none; display:flex; flex-direction:column; justify-content:center; align-items:center; transform: rotate(15deg);">
-                    <!-- 邮戳内虚线圈 -->
-                    <div style="position:absolute; inset: 4px; border: 1.5px dashed var(--border-color); border-radius: 50%;"></div>
-                    <!-- 纸飞机图标 -->
-                    <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-top:-2px;"><path d="M22 2 11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    <!-- 邮戳文字 -->
-                    <div style="font-size: 8px; font-weight: 900; font-family: monospace; letter-spacing: 1px; margin-top: 4px;">POST</div>
-                </div>
-                <!-- 邮戳旁边的波浪销票线 -->
-                <div style="position:absolute; top: 38px; right: 85px; width: 35px; height: 14px; opacity: 0.35; z-index: 2; pointer-events: none; transform: rotate(15deg); display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="width: 100%; height: 2px; background: var(--border-color); border-radius: 2px;"></div>
-                    <div style="width: 80%; height: 2px; background: var(--border-color); border-radius: 2px; margin-left: 10%;"></div>
-                    <div style="width: 100%; height: 2px; background: var(--border-color); border-radius: 2px;"></div>
-                </div>
-                
-                <textarea id="letterWriteInput" style="flex:1; width:100%; padding:32px 20px 20px 20px; border:4px solid var(--border-color); border-radius:8px; resize:none; font-family:inherit; font-weight:900; line-height:32px; background-color:var(--panel-bg); background-image: repeating-linear-gradient(transparent, transparent 31px, rgba(128,128,128,0.2) 31px, rgba(128,128,128,0.2) 32px); background-attachment: local; color:var(--text-color); outline:none; font-size:1.05em; box-shadow: 6px 6px 0 var(--border-color);" placeholder="亲爱的 TA：&#10;&#10;写下你想说的话..."></textarea>
-            </div>
-            <button class="action-btn" style="margin-top:20px; border-radius:8px; display:flex; justify-content:center; align-items:center; gap:8px; padding:15px; font-size:1.1em; border: 3px solid var(--border-color); box-shadow: 4px 4px 0 var(--border-color); transition: 0.1s;" onclick="sendUserLetter()" onmousedown="this.style.transform='translate(4px,4px)'; this.style.boxShadow='none';" onmouseup="this.style.transform='none'; this.style.boxShadow='4px 4px 0 var(--border-color)';">
-                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" fill="none" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                封上信封寄出
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- 阅读信件全屏模态框 -->
-<div class="modal" id="readLetterModal" style="z-index: 999999;">
-    <div class="modal-content" style="height: 85vh; display: flex; flex-direction: column; background: var(--bg-color); border: 4px solid var(--border-color); border-radius: 12px; overflow: hidden; box-shadow: 8px 8px 0 var(--border-color);">
-        <!-- 复古红白蓝航空信封边纹理 -->
-        <div style="height: 10px; width: 100%; background: repeating-linear-gradient(45deg, #ff4444 0, #ff4444 12px, transparent 12px, transparent 24px, #4285f4 24px, #4285f4 36px, transparent 36px, transparent 48px); border-bottom: 3px solid var(--border-color);"></div>
-        
-        <div style="padding:15px 20px; border-bottom: 4px solid var(--border-color); font-weight:900; font-size:1.2em; display:flex; justify-content:space-between; align-items:center; background: var(--panel-bg);">
-            <div style="display: flex; flex-direction: column; text-align: left; gap: 4px;">
-                <span style="font-size: 0.65em; opacity: 0.7; letter-spacing: 2px;">MAIL.OS</span>
-                <span id="readLetterSender" style="font-size:0.85em; font-style:italic;">来自: TA</span>
-            </div>
-            <button class="icon-btn" style="border:3px solid var(--border-color); border-radius:50%; width:36px; height:36px; display:flex; justify-content:center; align-items:center; color:var(--text-color); background:var(--bg-color); box-shadow:2px 2px 0 var(--border-color);" onclick="document.getElementById('readLetterModal').style.display='none'">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="3.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-        </div>
-        
-        <div style="flex:1; overflow-y:auto; padding:25px 20px; background-image: var(--bg-pattern); background-size: var(--bg-size);">
-            <div id="readLetterPaper" class="letter-paper"></div>
-            <div style="display:flex; justify-content:flex-end; align-items:center; margin-top:10px; gap:8px;">
-                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.5" style="opacity:0.6;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                <div id="readLetterTime" style="font-weight:900; opacity:0.8; font-size:0.9em; font-style:italic; font-family:monospace; letter-spacing:1px;"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- 生理期/月经记录 模态框 -->
 <div class="modal" id="periodModal" style="z-index: 99999;">
@@ -5308,7 +5161,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
             <div style="font-size:0.8em; font-weight:bold; color:gray;">【基础核心数据】</div>
             <label style="display:flex; align-items:center; gap:8px; font-weight:900;"><input type="checkbox" class="export-sub" value="config" checked style="width:18px;height:18px;accent-color:var(--text-color);"> 基础设置与界面排版</label>
             <label style="display:flex; align-items:center; gap:8px; font-weight:900;"><input type="checkbox" class="export-sub" value="charactersList" checked style="width:18px;height:18px;accent-color:var(--text-color);"> 角色与群聊列表</label>
-            <label style="display:flex; align-items:center; gap:8px; font-weight:900;"><input type="checkbox" class="export-sub" value="modules" checked style="width:18px;height:18px;accent-color:var(--text-color);"> 附加(打卡/记账/信件/纪念日)</label>
+            <label style="display:flex; align-items:center; gap:8px; font-weight:900;"><input type="checkbox" class="export-sub" value="modules" checked style="width:18px;height:18px;accent-color:var(--text-color);"> 附加(打卡/记账/纪念日)</label>
             
             <div style="font-size:0.8em; font-weight:bold; color:gray; margin-top:5px;">【独立大体积数据】</div>
             <label style="display:flex; align-items:center; gap:8px; font-weight:900;"><input type="checkbox" class="export-cb" value="wordCards" checked style="width:18px;height:18px;accent-color:var(--text-color);"> 自定义字卡库</label>
@@ -5357,7 +5210,7 @@ body.theme-journal .search-context-box { background: #fdfaf6; border: 1px dashed
         let currentChatId = 'default';
 
                 let currentSettings = { 
-theme: "light", dataId: generateUUID(), enableKeepAlive: "false", petEnabled: "false", petSize: 100, petSpeed: 2, petRoam: "false", petIdleUrl: "", petWalkUrl: "", petDragUrl: "", charName: "TA", userName: "我", minTime: 1.0, maxTime: 3.0, readButNoReply: "false", showFloatingBall: "true", enableStats: "true", showDotBg: "true", enableCardSplicing: "false", diaryEnabled: "false", diaryCount: 3,
+theme: "light", dataId: generateUUID(), enableKeepAlive: "false", petEnabled: "false", petSize: 100, petSpeed: 2, petRoam: "false", petIdleUrl: "", petWalkUrl: "", petDragUrl: "", charName: "TA", userName: "我", minTime: 1.0, maxTime: 3.0, readButNoReply: "false", showFloatingBall: "true", enableStats: "true", showDotBg: "true", enableCardSplicing: "false",
     avatarShape: "square",
             avatarUrl: "", frameUrl: "", frameX: 50, frameY: 50, frameScale: 100, 
             userAvatarUrl: "", userFrameUrl: "", userFrameX: 50, userFrameY: 50, userFrameScale: 100, 
@@ -5787,11 +5640,6 @@ if (document.getElementById('enableKeepAliveInput')) {
     document.getElementById('enableKeepAliveInput').checked = (currentSettings.enableKeepAlive === "true");
 }
 applyKeepAlive(); 
-            if (document.getElementById('proactiveMsgEnabledInput')) document.getElementById('proactiveMsgEnabledInput').checked = (currentSettings.proactiveMsgEnabled === "true");
-if (document.getElementById('proactiveMsgTimeInput')) {
-    document.getElementById('proactiveMsgTimeInput').value = currentSettings.proactiveMsgTime || 5;
-    document.getElementById('proactiveMsgTimeVal').innerText = currentSettings.proactiveMsgTime || 5;
-}
 if (document.getElementById('enableStatsInput')) document.getElementById('enableStatsInput').checked = (currentSettings.enableStats !== "false");
 if (document.getElementById('showDotBgInput')) document.getElementById('showDotBgInput').checked = (currentSettings.showDotBg !== "false");
 updateFloatingBallVisibility();
@@ -5873,10 +5721,9 @@ if (currentSettings.theme) {
 
     // 【在这里加上这句，确保刚打开网页也能显示】
     setTimeout(refreshInterpretIcon, 500);
-    resetProactiveTimer(); // 初始化启动定时器
 }
 
-// === 通知与主动发消息引擎 ===
+// === 通知引擎 ===
 function requestNotifyPerm() {
     if (!("Notification" in window)) {
         showCustomConfirm("您的浏览器不支持通知功能", ()=>{});
@@ -5930,29 +5777,7 @@ function notifyUser(title, body) {
     }
 }
 
-let proactiveTimer = null;
-function resetProactiveTimer() {
-    if (proactiveTimer) clearTimeout(proactiveTimer);
-    if (currentSettings.proactiveMsgEnabled === "true") {
-        let mins = parseFloat(currentSettings.proactiveMsgTime) || 5;
-        
-        // 1. 计算基础时间（毫秒）
-        let baseMs = mins * 60 * 1000;
-        
-        // 2. 加入活人感波动机制（-25% 到 +25% 之间随机跳动）
-        // Math.random() - 0.5 会产生 -0.5 到 0.5 的随机数，再乘0.5，也就是 -0.25 到 +0.25
-        let fluctuate = (Math.random() - 0.5) * 0.5; 
-        let finalMs = baseMs * (1 + fluctuate);
-        
-        // 3. 兜底保护：再怎么随机短，也不能低于 15 秒（防崩溃防疯狂刷屏）
-        if (finalMs < 15000) finalMs = 15000;
 
-        proactiveTimer = setTimeout(() => {
-            // 时间到了，触发 TA 讲话
-            triggerYumeReply();
-        }, finalMs);
-    }
-}
 // =========================
 
         function openSettings() { 
@@ -6054,9 +5879,6 @@ if (document.getElementById('enableKeepAliveInput')) {
     currentSettings.enableKeepAlive = document.getElementById('enableKeepAliveInput').checked ? "true" : "false";
 }
 applyKeepAlive();
-            if (document.getElementById('proactiveMsgEnabledInput')) currentSettings.proactiveMsgEnabled = document.getElementById('proactiveMsgEnabledInput').checked ? "true" : "false";
-if (document.getElementById('proactiveMsgTimeInput')) currentSettings.proactiveMsgTime = document.getElementById('proactiveMsgTimeInput').value;
-resetProactiveTimer(); // 保存设置后重置一下定时器
 if (document.getElementById('enableStatsInput')) currentSettings.enableStats = document.getElementById('enableStatsInput').checked ? "true" : "false";
 if (document.getElementById('showDotBgInput')) currentSettings.showDotBg = document.getElementById('showDotBgInput').checked ? "true" : "false";
 updateFloatingBallVisibility();
@@ -6160,7 +5982,7 @@ async function confirmAdvancedExport() {
             } else if (item.key === 'charactersList' || item.key === 'currentChatId') {
                 if (allowedKeys.includes('charactersList')) finalSettings.push(item);
             } else {
-                // 打卡、记账、信件、纪念日等全部归入附加模块
+                // 打卡、记账、纪念日等全部归入附加模块
                 if (allowedKeys.includes('modules')) finalSettings.push(item);
             }
         }
@@ -6531,7 +6353,6 @@ async function renderCardsList() {
 }
 
 
-
         function toggleCardSelection(id, isChecked) {
             if(isChecked) selectedCardIds.add(id);
             else selectedCardIds.delete(id);
@@ -6885,8 +6706,6 @@ await putToDB('messages', msg);
     // 【在这里加上这句】
     setTimeout(refreshInterpretIcon, 400);
     
-    // 每次有新消息都重置主动发消息的倒计时
-    resetProactiveTimer();
     // 如果是TA发的消息，且网页在后台，尝试弹系统通知
     if (isNew && sender !== 'user') {
         let nTitle = (replierObj ? replierObj.name : msg.charName) || currentSettings.charName || "TA";
@@ -7141,7 +6960,6 @@ if (customPokeList.length > 0 && Math.random() < 0.03) {
 }
 
 
-
 // 真正发出消息
 if (hasStickers) {
     if (roll < 0.05) { // 5% 概率只发纯表情 (原为10%)
@@ -7167,8 +6985,8 @@ if (hasStickers) {
     document.body.appendChild(typingIndicator); // 归位到外部，避免被夹在历史记录里
     isReplying = false;
 
-    // —— 对方自动撤回功能：整轮回复后 6% 概率撤回本轮刚发的其中一条 ——
-    if (Math.random() < 0.06) {
+    // —— 对方自动撤回功能：整轮回复后 3% 概率撤回本轮刚发的其中一条 ——
+    if (Math.random() < 0.03) {
         // 收集本轮刚发的 TA 消息（按本轮起点 index 划分）
         let roundYumeMsgs = [];
         for (let i = roundMsgStartIndex; i < allMessagesCache.length; i++) {
@@ -9364,392 +9182,9 @@ async function shareCheckin(id, sender = 'user') {
     }
 }
 
-/* ================= 写信系统核心逻辑 ================= */
-let letterDataList = [];
-let notifiedLetterIds = new Set(); // 用于防止重复弹窗通知
-
-async function openLetterModal() {
-    document.getElementById('appPanel').style.display = 'none';
-    
-    // 1. 先在后台偷偷读数据
-    const lData = await getFromDB('settings', 'letterData');
-    if (lData) letterDataList = lData.value;
-    document.getElementById('proactiveLetterToggle').checked = (currentSettings.taProactiveLetter === "true");
-    
-    // 2. 读完数据后，瞬间显示弹窗并排版！
-    document.getElementById('letterModal').style.display = 'flex';
-    switchLetterTab('inbox');
-}
-
-function switchLetterTab(tab) {
-    document.getElementById('letterTabInbox').classList.remove('active');
-    document.getElementById('letterTabSent').classList.remove('active');
-    document.getElementById('letterTabWrite').classList.remove('active');
-    document.getElementById('letter-tab-inbox').style.display = 'none';
-    document.getElementById('letter-tab-sent').style.display = 'none';
-    document.getElementById('letter-tab-write').style.display = 'none';
-    
-    if (tab === 'inbox') {
-        document.getElementById('letterTabInbox').classList.add('active');
-        document.getElementById('letter-tab-inbox').style.display = 'flex';
-        renderLetterInbox();
-    } else if (tab === 'sent') {
-        document.getElementById('letterTabSent').classList.add('active');
-        document.getElementById('letter-tab-sent').style.display = 'flex';
-        renderLetterSent();
-    } else if (tab === 'write') {
-        document.getElementById('letterTabWrite').classList.add('active');
-        document.getElementById('letter-tab-write').style.display = 'flex';
-    }
-}
-
-function formatLetterTime(ts) {
-    const d = new Date(ts);
-    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-}
-
-// 渲染收信箱（只显示当前角色的信件）
-function renderLetterInbox() {
-    const container = document.getElementById('inboxListRender');
-    container.innerHTML = '';
-    const now = Date.now();
-    
-    const inbox = letterDataList.filter(l => l.sender === 'char' && l.arriveTime <= now && (!l.chatId || l.chatId === currentChatId))
-                                .sort((a,b) => b.arriveTime - a.arriveTime);
-    
-    if (inbox.length === 0) {
-        container.innerHTML = '<div style="text-align:center; opacity:0.5; font-weight:900; padding:40px 0; font-style:italic;">邮箱里空空如也...</div>';
-        return;
-    }
-    
-    inbox.forEach(l => {
-        const item = document.createElement('div');
-        item.className = `letter-item ${l.isRead ? '' : 'unread'}`;
-        item.style.opacity = l.isRead ? '0.7' : '1';
-        let senderName = l.charName || currentSettings.charName || 'TA';
-        item.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:6px;">
-                <div style="font-weight:900; font-size:1.1em; display:flex; align-items:center; gap:8px;">
-                    ${l.isRead ? '' : '<span class="unread-dot"></span>'}
-                    来自 ${senderName} 的回信
-                </div>
-                <div style="font-size:0.8em; opacity:0.8; font-style:italic; display:flex; align-items:center; gap:6px;">
-                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    抵达: ${formatLetterTime(l.arriveTime)}
-                </div>
-            </div>
-            <button class="icon-btn" style="border:none; color:#ff4444; padding:5px; box-shadow:none; background:transparent;" onclick="deleteLetter('${l.id}', event)">✖</button>
-        `;
-        item.onclick = () => openReadLetter(l);
-        container.appendChild(item);
-    });
-}
-
-// 渲染发信箱
-function renderLetterSent() {
-    const container = document.getElementById('letter-tab-sent');
-    container.innerHTML = '';
-    const sent = letterDataList.filter(l => l.sender === 'user' && (!l.chatId || l.chatId === currentChatId))
-                               .sort((a,b) => b.sendTime - a.sendTime);
-    
-    if (sent.length === 0) {
-        container.innerHTML = '<div style="text-align:center; opacity:0.5; font-weight:900; padding:40px 0; font-style:italic;">还没寄出过任何信件呢~</div>';
-        return;
-    }
-    
-    sent.forEach(l => {
-        const item = document.createElement('div');
-        item.className = 'letter-item';
-        item.innerHTML = `
-            <div style="display:flex; flex-direction:column; gap:6px; flex:1; min-width:0; padding-right: 15px;">
-                <div style="font-weight:900; font-size:1.1em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${l.content.substring(0, 15)}...</div>
-                <div style="font-size:0.8em; opacity:0.8; font-style:italic; display:flex; align-items:center; gap:6px;">
-                    <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M22 2 11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                    寄出: ${formatLetterTime(l.sendTime)}
-                </div>
-            </div>
-            <button class="icon-btn" style="border:none; color:#ff4444; padding:5px; box-shadow:none; background:transparent; flex-shrink:0;" onclick="deleteLetter('${l.id}', event)">✖</button>
-        `;
-        item.onclick = () => openReadLetter(l);
-        container.appendChild(item);
-    });
-}
-
-async function openReadLetter(letter) {
-    document.getElementById('readLetterModal').style.display = 'flex';
-    let senderName = letter.sender === 'user' ? '发件人: 我' : `寄件人: ${letter.charName || currentSettings.charName || 'TA'}`;
-    document.getElementById('readLetterSender').innerText = senderName;
-    document.getElementById('readLetterPaper').innerText = letter.content;
-    document.getElementById('readLetterTime').innerText = formatLetterTime(letter.sender === 'user' ? letter.sendTime : letter.arriveTime);
-    
-    if (letter.sender === 'char' && !letter.isRead) {
-        letter.isRead = true;
-        await putToDB('settings', { key: 'letterData', value: letterDataList });
-        renderLetterInbox(); 
-    }
-}
-
-async function deleteLetter(id, e) {
-    e.stopPropagation();
-    showCustomConfirm('确定要销毁这封信件吗？', async () => {
-        letterDataList = letterDataList.filter(l => l.id !== id);
-        await putToDB('settings', { key: 'letterData', value: letterDataList });
-        if (document.getElementById('letterTabInbox').classList.contains('active')) renderLetterInbox();
-        else renderLetterSent();
-    });
-}
-
-// 悬浮窗提示
-function showLetterToast(msg) {
-    let t = document.createElement('div');
-    t.style.cssText = 'position:fixed; bottom:120px; left:50%; transform:translateX(-50%); background:var(--text-color); color:var(--bg-color); padding:12px 20px; border-radius:24px; font-weight:900; font-size:0.95em; z-index:999999; opacity:0; transition:opacity 0.3s; pointer-events:none; box-shadow:0 4px 10px rgba(0,0,0,0.2); text-align:center; white-space:pre-wrap; line-height: 1.5;';
-    t.innerText = msg;
-    document.body.appendChild(t);
-    setTimeout(()=>t.style.opacity='1', 10);
-    setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); }, 2500);
-}
-
-async function sendUserLetter() {
-    const content = document.getElementById('letterWriteInput').value.trim();
-    if (!content) {
-        showLetterToast('信件内容不能为空哦！');
-        return;
-    }
-    
-    let activeChar = charactersList.find(c => c.id === currentChatId);
-    let targetName = activeChar ? activeChar.name : (currentSettings.charName || 'TA');
-    
-    const now = Date.now();
-    const userLetter = {
-        id: 'ltr_u_' + now, sender: 'user', chatId: currentChatId, charName: targetName,
-        content: content, sendTime: now, arriveTime: now
-    };
-    letterDataList.push(userLetter);
-    
-    const delayMs = Math.floor((Math.random() * 24 + 24) * 60 * 60 * 1000);
-    const arriveTime = now + delayMs;
-    
-    const allWords = await getAllFromDB('wordCards');
-    const taContent = generateTaLetterContent(allWords, targetName);
-    
-    const taLetter = {
-        id: 'ltr_t_' + Date.now(), sender: 'char', chatId: currentChatId, charName: targetName,
-        content: taContent, sendTime: now, arriveTime: arriveTime, isRead: false
-    };
-    letterDataList.push(taLetter);
-    
-    await putToDB('settings', { key: 'letterData', value: letterDataList });
-    document.getElementById('letterWriteInput').value = '';
-    
-    showLetterToast('信件已交由邮差寄出！\n预计将在 1~2 天内收到回信。');
-    
-    switchLetterTab('sent');
-    
-// 发信后立刻重新计算下一个定时器唤醒时间
-    checkUnreadLetters();
-}
-
-async function toggleProactiveLetter() {
-    currentSettings.taProactiveLetter = document.getElementById('proactiveLetterToggle').checked ? "true" : "false";
-    if (currentSettings.taProactiveLetter === "true" && !currentSettings.nextProactiveLetterTime) {
-        currentSettings.nextProactiveLetterTime = Date.now() + (Math.random() * 2 + 1) * 24 * 60 * 60 * 1000;
-    }
-    await putToDB('settings', { key: 'config', value: currentSettings });
-    // 状态改变，重新计算睡眠锚点
-    checkUnreadLetters();
-}
-
-// 智能拼凑字卡并代入寄件人姓名
-function generateTaLetterContent(cards, charName) {
-    if (!cards || cards.length === 0) return "（拿起笔想给你回信，但字卡库空空如也，不知该从何说起呢...）";
-    
-    const numCards = Math.floor(Math.random() * 6) + 5;
-    let letterText = "";
-    
-    for (let i = 0; i < numCards; i++) {
-        const cardText = cards[Math.floor(Math.random() * cards.length)].text.trim();
-        letterText += cardText;
-        
-        // 递减概率插入符号
-        if (i < numCards - 1) {
-            const r = Math.random();
-            if (r < 0.50) letterText += "，"; 
-            else if (r < 0.75) letterText += "。"; 
-            else if (r < 0.90) letterText += "！"; 
-            else if (r < 0.95) letterText += "……"; 
-            else letterText += "。\n\n";
-        } else {
-            letterText += "。";
-        }
-    }
-    
-    const greetings = ["亲爱的：\n\n", "见字如面，\n\n", "展信佳。\n\n", "致我最想念的你：\n\n", ""];
-    const signoffs = ["\n\n祝好，\n", "\n\n想你的，\n", "\n\n盼复。\n", "\n\n永远陪伴你的，\n"];
-    
-    const greet = greetings[Math.floor(Math.random() * greetings.length)];
-    const sign = signoffs[Math.floor(Math.random() * signoffs.length)] + (charName || "TA");
-    
-    return greet + letterText + sign;
-}
-
-// ================= 精准睡眠唤醒架构 (0后台耗电) =================
-
-let checkinTimer = null;
-
-// 梦角后台自动打卡机制
-async function checkPartnerCheckins() {
-    const dbData = await getFromDB('settings', 'checkinData');
-    if(!dbData || !dbData.value) return;
-    let list = dbData.value;
-    let changed = false;
-    let todayStr = new Date().toLocaleDateString();
-    let now = Date.now();
-    
-    let nextEarliestTime = null; // 记录距离现在最近的一次未来打卡时间
-    
-    for(let ci of list) {
-        if(ci.mode === 'duo' && ci.partnerCheckEnabled) {
-            if(!ci.partnerCheckedDates) ci.partnerCheckedDates = [];
-            // 如果梦角目标已达成，跳过
-            if(ci.partnerCheckedDates.length >= ci.targetDays) continue;
-            
-            // 判断梦角今天是否还没打卡
-            if(!ci.partnerCheckedDates.includes(todayStr)) {
-                // 如果今天还没有分配随机打卡时间，随机分配一个（从现在起的 0~8 小时内）
-                if(!ci.nextPartnerCheckinTime || new Date(ci.nextPartnerCheckinTime).toLocaleDateString() !== todayStr) {
-                    ci.nextPartnerCheckinTime = now + Math.floor(Math.random() * (8 * 60 * 60 * 1000));
-                    changed = true;
-                }
-                
-                // 时间到了！梦角执行打卡
-                if(now >= ci.nextPartnerCheckinTime) {
-                    ci.partnerCheckedDates.push(todayStr);
-                    changed = true;
-                    // 如果打卡列表界面正开着，立刻刷新界面
-                    checkinDataList = list;
-                    if(document.getElementById('checkinModal').style.display === 'flex') renderCheckinList();
-                    
-                    // 50% 概率将打卡卡片分享给你
-                    if(Math.random() < 0.5) {
-                        setTimeout(() => shareCheckin(ci.id, 'char'), 1500);
-                    }
-                } else {
-                    // 时间还没到，记录下这个未来锚点
-                    if (!nextEarliestTime || ci.nextPartnerCheckinTime < nextEarliestTime) {
-                        nextEarliestTime = ci.nextPartnerCheckinTime;
-                    }
-                }
-            }
-        }
-    }
-    if(changed) {
-        await putToDB('settings', { key: 'checkinData', value: list });
-    }
-
-    // 【核心优化】：精准睡眠，到时间自动唤醒，不浪费一丁点后台性能
-    if (checkinTimer) clearTimeout(checkinTimer);
-    if (nextEarliestTime && nextEarliestTime > now) {
-        checkinTimer = setTimeout(checkPartnerCheckins, (nextEarliestTime - now) + 1000);
-    }
-}
-
-
-let letterTimer = null;
-
-// 写信系统后台精准监控
-async function checkUnreadLetters() {
-    const lData = await getFromDB('settings', 'letterData');
-    if (!lData) return;
-    letterDataList = lData.value;
-    
-    const now = Date.now();
-    let newArrivedCount = 0;
-    let nextEarliestTime = null; // 记录下一次最近的信件相关事件时间
-    
-    letterDataList.forEach(l => {
-        if (l.sender === 'char' && !l.isRead && !notifiedLetterIds.has(l.id)) {
-            if (l.arriveTime <= now) {
-                newArrivedCount++;
-                notifiedLetterIds.add(l.id); 
-            } else {
-                // 还没送达，记录这个送达时间
-                if (!nextEarliestTime || l.arriveTime < nextEarliestTime) {
-                    nextEarliestTime = l.arriveTime;
-                }
-            }
-        }
-    });
-    
-    // 全局悬浮提示收到来信
-if (newArrivedCount > 0) {
-    let t = document.createElement('div');
-    // 增加 white-space:nowrap; 强制一行，增加 transition:opacity 0.3s; 做淡出
-    t.style.cssText = 'position:fixed; top:75px; left:50%; transform:translateX(-50%); background:var(--text-color); color:var(--bg-color); padding:10px 20px; border-radius:24px; font-weight:900; font-size:0.9em; z-index:999999; box-shadow:0 6px 15px rgba(0,0,0,0.15); cursor:pointer; display:flex; align-items:center; gap:8px; white-space:nowrap; opacity:0; transition:opacity 0.3s ease-out;';
-    t.innerHTML = `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> 邮差送来了 ${newArrivedCount} 封新信件`;
-    t.onclick = () => { t.remove(); openLetterModal(); };
-    document.body.appendChild(t);
-    
-    // 停留时间改短到3.5秒（原本是8秒），并丝滑淡出
-    setTimeout(() => { 
-        if (t.parentNode) {
-            t.style.opacity = '0';
-            setTimeout(() => { if (t.parentNode) t.remove(); }, 300);
-        }
-    }, 3500); 
-}
-    
-    // 主动写信逻辑
-    if (currentSettings.taProactiveLetter === "true") {
-        if (currentSettings.nextProactiveLetterTime) {
-            if (now >= currentSettings.nextProactiveLetterTime) {
-                // 时间到了，立刻执行主动写信
-                let activeChar = charactersList.find(c => c.id === currentChatId);
-                let charName = activeChar ? activeChar.name : (currentSettings.charName || 'TA');
-    
-                const allW = await getAllFromDB('wordCards');
-                const taContent = "【寄件人主动来信】\n\n" + generateTaLetterContent(allW, charName);
-                
-                const taLetter = {
-                    id: 'ltr_t_p_' + Date.now(),
-                    sender: 'char',
-                    chatId: currentChatId, 
-                    charName: charName,
-                    content: taContent,
-                    sendTime: now,
-                    arriveTime: now, 
-                    isRead: false
-                };
-                letterDataList.push(taLetter);
-                await putToDB('settings', { key: 'letterData', value: letterDataList });
-                
-                // 安排下一次主动来信的时间 (顺延 2~4 天)
-                currentSettings.nextProactiveLetterTime = Date.now() + (Math.random() * 2 + 2) * 24 * 60 * 60 * 1000;
-                await putToDB('settings', { key: 'config', value: currentSettings });
-                
-                // 立刻递归查一次，触发刚才那封信的弹窗
-                checkUnreadLetters();
-                return; // 直接返回，把定时器计算交给下一轮
-            } else {
-                // 还没到写信时间，记录锚点
-                if (!nextEarliestTime || currentSettings.nextProactiveLetterTime < nextEarliestTime) {
-                    nextEarliestTime = currentSettings.nextProactiveLetterTime;
-                }
-            }
-        }
-    }
-
-    // 【核心优化】：精准睡眠唤醒
-    if (letterTimer) clearTimeout(letterTimer);
-    if (nextEarliestTime && nextEarliestTime > now) {
-        letterTimer = setTimeout(checkUnreadLetters, (nextEarliestTime - now) + 1000);
-    }
-}
-
-
 // === 系统启动对账 ===
 setTimeout(() => { 
     checkPartnerCheckins();
-    checkUnreadLetters(); 
     checkPendingDiaryTasks();
 }, 2000);
 
@@ -10212,7 +9647,6 @@ document.addEventListener('touchend', (e) => {
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         checkPartnerCheckins();
-        checkUnreadLetters();
         checkPendingDiaryTasks();
     }
 });
@@ -13581,7 +13015,6 @@ async function updateRedPacketStateUI(rpId, status) {
         }
     }
 }
-
 
 
 /* ================= 字卡一键去重功能 ================= */
